@@ -733,11 +733,34 @@ export default function Consumer() {
     return 0;
   });
 
+  const swipeMutation = useMutation({
+    mutationFn: async (payload: { propertyId: number; direction: "left" | "right"; matchScore: number; matchedTags: string[] }) => {
+      const res = await apiRequest("POST", "/api/swipe", {
+        ...payload,
+        userName: "Anonymous Buyer",
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/count"] });
+    },
+  });
+
   const handleSwipe = (dir: "left" | "right") => {
     const property = properties[0];
     if (!property) return;
 
     setSwipedIds(prev => new Set(prev).add(property.id));
+
+    const score = computeMatchScore(property, filters);
+    const matchedTags = filters?.mustHaves?.filter(tag => property.tags?.includes(tag)) || [];
+
+    swipeMutation.mutate({
+      propertyId: property.id,
+      direction: dir,
+      matchScore: score,
+      matchedTags,
+    });
 
     if (dir === "right") {
       triggerHaptic([15, 30, 15]);

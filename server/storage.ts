@@ -1,6 +1,6 @@
-import { properties, leads, type Property, type InsertProperty, type Lead, type InsertLead } from "@shared/schema";
+import { properties, leads, notifications, type Property, type InsertProperty, type Lead, type InsertLead, type Notification, type InsertNotification } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, ilike, sql } from "drizzle-orm";
+import { eq, and, gte, lte, ilike, desc, sql } from "drizzle-orm";
 
 export interface IStorage {
   getProperties(filters?: {
@@ -10,7 +10,6 @@ export interface IStorage {
     bedrooms?: number;
     vibe?: string;
     status?: string;
-    tags?: string[];
   }): Promise<Property[]>;
   getProperty(id: number): Promise<Property | undefined>;
   createProperty(data: InsertProperty): Promise<Property>;
@@ -18,6 +17,11 @@ export interface IStorage {
   deleteProperty(id: number): Promise<boolean>;
   createLead(data: InsertLead): Promise<Lead>;
   getLeads(): Promise<Lead[]>;
+  getNotifications(recipientId: string): Promise<Notification[]>;
+  getUnreadNotificationCount(recipientId: string): Promise<number>;
+  createNotification(data: InsertNotification): Promise<Notification>;
+  markNotificationRead(id: number): Promise<void>;
+  markAllNotificationsRead(recipientId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -51,8 +55,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (conditions.length > 0) {
-      let query = db.select().from(properties).where(and(...conditions));
-      return query;
+      return db.select().from(properties).where(and(...conditions));
     }
     return db.select().from(properties);
   }
@@ -84,6 +87,37 @@ export class DatabaseStorage implements IStorage {
 
   async getLeads(): Promise<Lead[]> {
     return db.select().from(leads);
+  }
+
+  async getNotifications(recipientId: string): Promise<Notification[]> {
+    return db.select().from(notifications)
+      .where(eq(notifications.recipientId, recipientId))
+      .orderBy(desc(notifications.createdAt));
+  }
+
+  async getUnreadNotificationCount(recipientId: string): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)::int` })
+      .from(notifications)
+      .where(and(
+        eq(notifications.recipientId, recipientId),
+        eq(notifications.readStatus, false)
+      ));
+    return result[0]?.count ?? 0;
+  }
+
+  async createNotification(data: InsertNotification): Promise<Notification> {
+    const [notification] = await db.insert(notifications).values(data).returning();
+    return notification;
+  }
+
+  async markNotificationRead(id: number): Promise<void> {
+    await db.update(notifications).set({ readStatus: true }).where(eq(notifications.id, id));
+  }
+
+  async markAllNotificationsRead(recipientId: string): Promise<void> {
+    await db.update(notifications)
+      .set({ readStatus: true })
+      .where(eq(notifications.recipientId, recipientId));
   }
 }
 

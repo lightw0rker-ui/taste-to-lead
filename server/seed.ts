@@ -19,6 +19,7 @@ export async function seedDatabase() {
       agentId: "agent-1",
       status: "active",
       vibe: "modern",
+      tags: ["Natural Light", "Smart Home", "Remote Ready"],
     },
     {
       title: "Mediterranean Villa Estate",
@@ -32,6 +33,7 @@ export async function seedDatabase() {
       agentId: "agent-1",
       status: "active",
       vibe: "classic",
+      tags: ["Fenced Yard", "Chef Kitchen", "Quiet Street"],
     },
     {
       title: "Urban Industrial Loft",
@@ -45,6 +47,7 @@ export async function seedDatabase() {
       agentId: "agent-1",
       status: "active",
       vibe: "industrial",
+      tags: ["Natural Light", "Remote Ready", "HOA Free"],
     },
     {
       title: "Oceanfront Paradise",
@@ -58,6 +61,7 @@ export async function seedDatabase() {
       agentId: "agent-1",
       status: "active",
       vibe: "modern",
+      tags: ["Smart Home", "Natural Light", "Quiet Street"],
     },
     {
       title: "Historic Brownstone Gem",
@@ -71,6 +75,7 @@ export async function seedDatabase() {
       agentId: "agent-1",
       status: "active",
       vibe: "classic",
+      tags: ["Chef Kitchen", "Quiet Street", "HOA Free"],
     },
   ];
 

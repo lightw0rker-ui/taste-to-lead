@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertPropertySchema, insertLeadSchema } from "@shared/schema";
+import { insertPropertySchema, insertLeadSchema, swipeSchema } from "@shared/schema";
+import { sendEmail, buildMatchEmailHtml } from "./notificationService";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -94,6 +95,105 @@ export async function registerRoutes(
     try {
       const leads = await storage.getLeads();
       res.json(leads);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/swipe", async (req, res) => {
+    try {
+      const parsed = swipeSchema.parse(req.body);
+      const property = await storage.getProperty(parsed.propertyId);
+      if (!property) {
+        return res.status(404).json({ message: "Property not found" });
+      }
+
+      let notification = null;
+
+      if (parsed.direction === "right" && parsed.matchScore > 85) {
+        const isCritical = parsed.matchScore > 95;
+        const priority = isCritical ? "critical" : "high";
+        const userName = parsed.userName || "A potential buyer";
+        const matchedTags = parsed.matchedTags || [];
+
+        const tagText = matchedTags.length > 0
+          ? ` | Matched on: ${matchedTags.join(", ")}`
+          : "";
+
+        notification = await storage.createNotification({
+          recipientId: property.agentId,
+          type: "match",
+          content: JSON.stringify({
+            userName,
+            propertyId: property.id,
+            propertyTitle: property.title,
+            propertyLocation: property.location,
+            propertyPrice: property.price,
+            matchScore: parsed.matchScore,
+            matchedTags,
+            message: `${userName} swiped right on "${property.title}" (${parsed.matchScore}% match)${tagText}`,
+          }),
+          priority,
+          readStatus: false,
+        });
+
+        if (isCritical) {
+          const emailHtml = buildMatchEmailHtml({
+            userName,
+            propertyTitle: property.title,
+            propertyLocation: property.location,
+            matchScore: parsed.matchScore,
+            matchedTags,
+            price: property.price,
+          });
+          sendEmail(
+            "agent@luxeestates.com",
+            `HOT LEAD: ${userName} matched ${property.title}`,
+            emailHtml
+          );
+        }
+      }
+
+      res.json({ success: true, notification });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/notifications", async (req, res) => {
+    try {
+      const recipientId = (req.query.recipientId as string) || "agent-1";
+      const notifications = await storage.getNotifications(recipientId);
+      res.json(notifications);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/notifications/count", async (req, res) => {
+    try {
+      const recipientId = (req.query.recipientId as string) || "agent-1";
+      const count = await storage.getUnreadNotificationCount(recipientId);
+      res.json({ count });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/notifications/:id/read", async (req, res) => {
+    try {
+      await storage.markNotificationRead(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/notifications/read-all", async (req, res) => {
+    try {
+      const recipientId = (req.body.recipientId as string) || "agent-1";
+      await storage.markAllNotificationsRead(recipientId);
+      res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

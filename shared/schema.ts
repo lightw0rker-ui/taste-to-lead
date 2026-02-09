@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, real, json, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, real, json, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -38,6 +38,9 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
 
 export type InsertProperty = z.infer<typeof insertPropertySchema>;
 export type Property = typeof properties.$inferSelect;
+export type InsertLead = z.infer<typeof insertLeadSchema>;
+export type Lead = typeof leads.$inferSelect;
+
 export const notifications = pgTable("notifications", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   recipientId: text("recipient_id").notNull(),
@@ -55,3 +58,11 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
+
+export const swipeSchema = z.object({
+  propertyId: z.number(),
+  direction: z.enum(["left", "right"]),
+  userName: z.string().optional(),
+  matchScore: z.number().min(0).max(100),
+  matchedTags: z.array(z.string()).optional(),
+});
