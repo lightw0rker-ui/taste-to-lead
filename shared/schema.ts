@@ -38,5 +38,20 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
 
 export type InsertProperty = z.infer<typeof insertPropertySchema>;
 export type Property = typeof properties.$inferSelect;
-export type InsertLead = z.infer<typeof insertLeadSchema>;
-export type Lead = typeof leads.$inferSelect;
+export const notifications = pgTable("notifications", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  recipientId: text("recipient_id").notNull(),
+  type: text("type").notNull(), // 'match', 'price_drop', 'system'
+  content: text("content").notNull(),
+  priority: text("priority").notNull(), // 'low', 'high', 'critical'
+  readStatus: boolean("read_status").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
