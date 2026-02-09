@@ -29,9 +29,40 @@ const propertyFormSchema = z.object({
   status: z.string().default("active"),
   vibe: z.string().default("modern"),
   agentId: z.string().default("agent-1"),
+  tags: z.array(z.string()).default([]),
 });
 
 type PropertyFormValues = z.infer<typeof propertyFormSchema>;
+
+const LIFESTYLE_TAGS = [
+  "Natural Light", "Remote Ready", "Chef Kitchen", "Fenced Yard", "HOA Free", "Smart Home", "Quiet Street"
+];
+
+function LifestyleSelector({ value, onChange }: { value: string[], onChange: (val: string[]) => void }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {LIFESTYLE_TAGS.map(tag => {
+        const isSelected = value.includes(tag);
+        return (
+          <Badge
+            key={tag}
+            variant={isSelected ? "default" : "outline"}
+            className="cursor-pointer hover-elevate py-1 px-3"
+            onClick={() => {
+              if (isSelected) {
+                onChange(value.filter(v => v !== tag));
+              } else if (value.length < 5) {
+                onChange([...value, tag]);
+              }
+            }}
+          >
+            {tag}
+          </Badge>
+        );
+      })}
+    </div>
+  );
+}
 
 function PropertyCard({ property, onEdit, onDelete }: {
   property: Property;
@@ -185,6 +216,7 @@ export default function Listings() {
       status: property.status,
       vibe: property.vibe || "modern",
       agentId: property.agentId,
+      tags: property.tags || [],
     });
   };
 
@@ -202,6 +234,7 @@ export default function Listings() {
       status: "active",
       vibe: "modern",
       agentId: "agent-1",
+      tags: [],
     });
     setShowForm(true);
   };
@@ -382,6 +415,20 @@ export default function Listings() {
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="tags"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Lifestyle Tags (Select 3-5)</FormLabel>
+              <FormControl>
+                <LifestyleSelector value={field.value} onChange={field.onChange} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="space-y-2">
           <FormLabel>Images</FormLabel>

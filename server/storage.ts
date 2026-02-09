@@ -10,6 +10,7 @@ export interface IStorage {
     bedrooms?: number;
     vibe?: string;
     status?: string;
+    tags?: string[];
   }): Promise<Property[]>;
   getProperty(id: number): Promise<Property | undefined>;
   createProperty(data: InsertProperty): Promise<Property>;
@@ -50,7 +51,8 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (conditions.length > 0) {
-      return db.select().from(properties).where(and(...conditions));
+      let query = db.select().from(properties).where(and(...conditions));
+      return query;
     }
     return db.select().from(properties);
   }

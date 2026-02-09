@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion, useMotionValue, useTransform, animate, PanInfo, AnimatePresence } from "framer-motion";
-import { MapPin, Bed, Bath, Ruler, ArrowLeft, Heart, X as XIcon, SlidersHorizontal, Sparkles } from "lucide-react";
+import { MapPin, Bed, Bath, Ruler, ArrowLeft, Heart, X as XIcon, SlidersHorizontal, Sparkles, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +16,13 @@ type OnboardingData = {
   budgetMax: number;
   bedrooms: string;
   vibe: string;
+  mustHaves: string[];
+  dealBreakers: string[];
 };
+
+const LIFESTYLE_TAGS = [
+  "Natural Light", "Remote Ready", "Chef Kitchen", "Fenced Yard", "HOA Free", "Smart Home", "Quiet Street"
+];
 
 function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) => void }) {
   const [step, setStep] = useState(0);
@@ -26,6 +32,8 @@ function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) =
     budgetMax: 10000000,
     bedrooms: "2",
     vibe: "modern",
+    mustHaves: [],
+    dealBreakers: [],
   });
 
   const locations = ["Manhattan, NY", "Brooklyn, NY", "Miami Beach, FL", "Beverly Hills, CA", "Austin, TX", "Chicago, IL"];
@@ -144,6 +152,54 @@ function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) =
         </div>
       ),
     },
+    {
+      title: "Must-Haves & Deal-Breakers",
+      subtitle: "Customize your lifestyle filters",
+      content: (
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">I Need (Must-Haves)</Label>
+            <div className="flex flex-wrap gap-2">
+              {LIFESTYLE_TAGS.map(tag => (
+                <Badge
+                  key={tag}
+                  variant={data.mustHaves.includes(tag) ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => {
+                    const next = data.mustHaves.includes(tag)
+                      ? data.mustHaves.filter(t => t !== tag)
+                      : [...data.mustHaves.filter(t => t !== tag), tag];
+                    setData(d => ({ ...d, mustHaves: next, dealBreakers: d.dealBreakers.filter(t => t !== tag) }));
+                  }}
+                >
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-3">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">I Hate (Deal-Breakers)</Label>
+            <div className="flex flex-wrap gap-2">
+              {LIFESTYLE_TAGS.map(tag => (
+                <Badge
+                  key={tag}
+                  variant={data.dealBreakers.includes(tag) ? "destructive" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => {
+                    const next = data.dealBreakers.includes(tag)
+                      ? data.dealBreakers.filter(t => t !== tag)
+                      : [...data.dealBreakers.filter(t => t !== tag), tag];
+                    setData(d => ({ ...d, dealBreakers: next, mustHaves: d.mustHaves.filter(t => t !== tag) }));
+                  }}
+                >
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+      ),
+    },
   ];
 
   const currentStep = steps[step];
@@ -236,6 +292,13 @@ function computeMatchScore(
     if (diff < 0.2) score += 15;
   }
 
+  // Must-haves boost
+  if (filters.mustHaves?.length) {
+    const mustHaveMatches = filters.mustHaves.filter(tag => property.tags?.includes(tag)).length;
+    score += mustHaveMatches * 10;
+    maxScore += filters.mustHaves.length * 10;
+  }
+
   if (filters.budgetMax && property.price < filters.budgetMax * 0.9) {
     score += 5;
     maxScore += 5;
@@ -316,6 +379,25 @@ function SwipeCard({
   const dragStartPos = useRef({ x: 0, y: 0 });
 
   const matchScore = computeMatchScore(property, filters);
+
+  const [overlayMode, setOverlayMode] = useState<"none" | "morning" | "golden" | "night">("none");
+
+  const getOverlayFilter = () => {
+    switch (overlayMode) {
+      case "morning": return "brightness(1.1) contrast(1.1) sepia(0.1) hue-rotate(180deg)";
+      case "golden": return "sepia(0.3) saturate(1.2) brightness(1.05)";
+      case "night": return "brightness(0.7) contrast(1.2) saturate(0.8) hue-rotate(220deg)";
+      default: return "none";
+    }
+  };
+
+  const cycleOverlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const modes: ("none" | "morning" | "golden" | "night")[] = ["none", "morning", "golden", "night"];
+    const nextIdx = (modes.indexOf(overlayMode) + 1) % modes.length;
+    setOverlayMode(modes[nextIdx]);
+    triggerHaptic(10);
+  };
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     dragStartTime.current = Date.now();
@@ -399,11 +481,23 @@ function SwipeCard({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0.6 }}
             transition={{ duration: 0.2 }}
+            style={{ filter: getOverlayFilter() }}
             data-testid={`img-swipe-photo-${property.id}`}
           />
         </AnimatePresence>
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        <div className="absolute top-12 left-3 z-30">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-8 h-8 rounded-full bg-black/20 backdrop-blur-md text-white border border-white/20 hover:bg-black/40"
+            onClick={cycleOverlay}
+          >
+            <Sun className="w-4 h-4" />
+          </Button>
+        </div>
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
 
         {images.length > 1 && (
           <div className="absolute top-0 left-0 right-0 z-20 flex gap-1 px-3 pt-2" data-testid={`gallery-progress-${property.id}`}>
@@ -440,6 +534,13 @@ function SwipeCard({
         )}
 
         <div className="absolute bottom-0 left-0 right-0 m-3 rounded-xl backdrop-blur-md bg-white/10 border border-white/10 p-4 space-y-2" data-testid={`glass-specs-${property.id}`}>
+          <div className="flex flex-wrap gap-1 mb-1">
+            {property.tags?.slice(0, 3).map(tag => (
+              <Badge key={tag} className="bg-white/20 backdrop-blur-sm text-white border-0 text-[10px] py-0 px-1.5 h-4">
+                {tag}
+              </Badge>
+            ))}
+          </div>
           <h2 className="text-xl font-bold text-white" data-testid={`text-swipe-title-${property.id}`}>{property.title}</h2>
           <p className="text-lg font-bold text-primary">${property.price.toLocaleString()}</p>
           <div className="flex items-center gap-1.5 text-white/80 text-sm">
@@ -616,7 +717,13 @@ export default function Consumer() {
 
   const allProperties = filteredProperties;
 
-  const properties = (allProperties?.filter(p => !swipedIds.has(p.id)) ?? []).sort((a, b) => {
+  const properties = (allProperties?.filter(p => {
+    // Deal-breaker filter
+    if (filters?.dealBreakers?.length) {
+      if (filters.dealBreakers.some(tag => p.tags?.includes(tag))) return false;
+    }
+    return !swipedIds.has(p.id);
+  }) ?? []).sort((a, b) => {
     if (filters?.vibe) {
       const aMatch = a.vibe === filters.vibe ? 0 : 1;
       const bMatch = b.vibe === filters.vibe ? 0 : 1;
