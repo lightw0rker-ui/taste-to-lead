@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
 export async function sendEmail(to: string, subject: string, body: string): Promise<void> {
   try {
     const info = await transporter.sendMail({
-      from: '"LuxeEstates Alerts" <alerts@luxeestates.com>',
+      from: '"Taste Alerts" <alerts@taste.com>',
       to,
       subject,
       html: body,
@@ -43,9 +43,9 @@ export function buildMatchEmailHtml({
     : '<span style="color:#888;">No specific tags matched</span>';
 
   return `
-    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:500px;margin:0 auto;background:#1a1a2e;border-radius:12px;overflow:hidden;">
+    <div style="font-family:'Playfair Display',serif,Arial,sans-serif;max-width:500px;margin:0 auto;background:#1a1a2e;border-radius:12px;overflow:hidden;">
       <div style="background:linear-gradient(135deg,#f59e0b,#d97706);padding:24px;text-align:center;">
-        <h1 style="margin:0;color:#000;font-size:22px;">HOT LEAD ALERT</h1>
+        <h1 style="margin:0;color:#000;font-size:22px;">Taste | Hot Lead Alert</h1>
         <p style="margin:4px 0 0;color:#000;opacity:0.7;font-size:14px;">${matchScore}% Match Score</p>
       </div>
       <div style="padding:24px;color:#e2e8f0;">

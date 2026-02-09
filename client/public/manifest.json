@@ -1,10 +1,10 @@
 {
-  "name": "Taste to Lead — LuxeEstates",
-  "short_name": "Taste to Lead",
+  "name": "Taste: Curated Real Estate",
+  "short_name": "Taste",
   "description": "Swipe through luxury properties and find your dream home",
-  "start_url": "/discover",
+  "start_url": "/?source=pwa",
   "display": "standalone",
-  "background_color": "#0a0a0f",
+  "background_color": "#0f172a",
   "theme_color": "#d4a853",
   "orientation": "portrait-primary",
   "icons": [

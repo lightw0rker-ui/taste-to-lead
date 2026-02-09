@@ -61,7 +61,7 @@ export default function Dashboard() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="text-dashboard-title">Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight font-serif" data-testid="text-dashboard-title">Taste to Lead | Agent Console</h1>
         <p className="text-muted-foreground text-sm mt-1">Welcome back to your command center</p>
       </div>
 

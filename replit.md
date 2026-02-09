@@ -1,9 +1,9 @@
-# LuxeEstates - Real Estate Agent Dashboard & Consumer App
+# Taste - Real Estate Discovery & Agent Console
 
 ## Overview
 A full-stack real estate application with two distinct experiences:
-1. **Agent Dashboard** (Command Center) - Property CRUD, stats, lead management, real-time notification feed
-2. **Consumer App** (Taste to Lead) - Tinder-style property swipe discovery with onboarding wizard
+1. **Agent Console** (Command Center) - Property CRUD, stats, lead management, real-time notification feed
+2. **Consumer App** (Taste) - Tinder-style property swipe discovery with onboarding wizard
 
 ## Tech Stack
 - **Frontend**: React (Vite), Tailwind CSS, Framer Motion, shadcn/ui, wouter routing

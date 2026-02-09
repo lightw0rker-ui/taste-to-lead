@@ -27,6 +27,7 @@ const LIFESTYLE_TAGS = [
 
 function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) => void }) {
   const [step, setStep] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(false); // This shouldn't be here, it's in Consumer component
   const [data, setData] = useState<OnboardingData>({
     location: "",
     budgetMin: 100000,
@@ -671,6 +672,7 @@ function MatchOverlay({ property, onClose }: { property: Property; onClose: () =
 
 export default function Consumer() {
   const [filters, setFilters] = useState<OnboardingData | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchProperty, setMatchProperty] = useState<Property | null>(null);
   const [swipedIds, setSwipedIds] = useState<Set<number>>(new Set());
@@ -790,13 +792,13 @@ export default function Consumer() {
   }
 
   return (
-    <div className="fixed inset-0 bg-background flex flex-col">
-      <header className="flex items-center justify-between gap-4 p-4 border-b border-border shrink-0">
+    <div className="fixed inset-0 bg-background flex flex-col font-serif">
+      <header className="flex items-center justify-between gap-4 p-4 border-b border-border shrink-0 bg-background/50 backdrop-blur-md">
         <Button variant="ghost" size="icon" onClick={resetFilters} data-testid="button-reset-filters">
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="font-bold text-lg" data-testid="text-consumer-title">Discover</h1>
-        <Button variant="ghost" size="icon" onClick={resetFilters} data-testid="button-adjust-filters">
+        <h1 className="font-bold text-2xl tracking-tighter italic text-primary" data-testid="text-consumer-title">Taste</h1>
+        <Button variant="ghost" size="icon" onClick={() => setShowOnboarding(true)} data-testid="button-adjust-filters">
           <SlidersHorizontal className="w-5 h-5" />
         </Button>
       </header>

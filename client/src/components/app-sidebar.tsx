@@ -30,8 +30,8 @@ export function AppSidebar() {
             <Sparkles className="w-4 h-4 text-primary-foreground" />
           </div>
           <div>
-            <h2 className="font-bold text-sm tracking-tight">LuxeEstates</h2>
-            <p className="text-xs text-muted-foreground">Agent Portal</p>
+            <h2 className="font-bold text-sm tracking-tight italic">Taste</h2>
+            <p className="text-xs text-muted-foreground">Agent Console</p>
           </div>
         </Link>
       </SidebarHeader>
