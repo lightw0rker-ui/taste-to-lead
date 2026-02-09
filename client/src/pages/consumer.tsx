@@ -27,7 +27,6 @@ const LIFESTYLE_TAGS = [
 
 function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) => void }) {
   const [step, setStep] = useState(0);
-  const [showOnboarding, setShowOnboarding] = useState(false); // This shouldn't be here, it's in Consumer component
   const [data, setData] = useState<OnboardingData>({
     location: "",
     budgetMin: 100000,
@@ -776,8 +775,8 @@ export default function Consumer() {
     setCurrentIndex(0);
   };
 
-  if (!filters) {
-    return <OnboardingWizard onComplete={setFilters} />;
+  if (!filters || showOnboarding) {
+    return <OnboardingWizard onComplete={(d) => { setFilters(d); setShowOnboarding(false); }} />;
   }
 
   if (isLoading) {
