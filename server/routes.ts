@@ -79,7 +79,7 @@ export async function registerRoutes(
   app.post("/api/leads", async (req, res) => {
     try {
       const parsed = insertLeadSchema.parse(req.body);
-      const property = await storage.getProperty(parsed.propertyId);
+      const property = await storage.getProperty(parsed.propertyId as number);
       if (!property) {
         return res.status(400).json({ message: "Invalid property ID" });
       }

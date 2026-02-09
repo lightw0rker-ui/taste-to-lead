@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, MapPin, Bed, Bath, Ruler, X } from "lucide-react";
+import { Plus, Pencil, Trash2, MapPin, Bed, Bath, Ruler, X, Building2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
