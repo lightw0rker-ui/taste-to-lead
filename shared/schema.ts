@@ -49,6 +49,7 @@ export const properties = pgTable("properties", {
   agentId: text("agent_id").notNull().default("agent-1"),
   status: text("status").notNull().default("active"),
   vibe: text("vibe").notNull().default("modern"),
+  vibeTag: text("vibe_tag").notNull().default("Unclassified"),
   tags: json("tags").$type<string[]>().notNull().default([]),
   organizationId: integer("organization_id"),
 });

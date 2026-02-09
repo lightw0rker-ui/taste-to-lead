@@ -45,12 +45,14 @@ A full-stack multi-tenant real estate SaaS platform with two distinct experience
 ### API Endpoints
 - `GET /api/properties` - List with filters + org silo (public shows all, agent sees own org)
 - `GET /api/properties/:id` - Single property (public)
-- `POST /api/properties` - Create property, auto-tags with org (agent only)
+- `POST /api/properties` - Create property, auto-tags with org + AI vibeTag via Gemini (agent only)
 - `PATCH /api/properties/:id` - Update property, org ownership check (agent only)
 - `DELETE /api/properties/:id` - Delete property, org ownership check (agent only)
+- `POST /api/properties/:id/retag` - Re-run Gemini AI classification on existing property (agent only)
 - `POST /api/leads` - Create lead (public, validates propertyId)
 - `GET /api/leads` - List leads filtered by org (agent only)
-- `POST /api/swipe` - Record swipe (public), trigger notifications for high matches (>85%)
+- `POST /api/swipe` - Record swipe (public), trigger notifications for high matches (>85%), build taste profile
+- `GET /api/taste-profile` - Get consumer's taste profile from session (public)
 - `GET /api/notifications` - List notifications (agent only)
 - `GET /api/notifications/count` - Unread count (agent only)
 - `PATCH /api/notifications/:id/read` - Mark read (agent only)
@@ -61,7 +63,7 @@ A full-stack multi-tenant real estate SaaS platform with two distinct experience
 ### Database Schema
 - **organizations**: id, name, subscriptionTier, logoUrl, inviteCode, createdAt
 - **agents**: id, email, passwordHash, name, role (agent|super_admin), organizationId
-- **properties**: id, title, description, price, bedrooms, bathrooms, sqft, location, images (JSON), agentId, status, vibe, tags (JSON), organizationId
+- **properties**: id, title, description, price, bedrooms, bathrooms, sqft, location, images (JSON), agentId, status, vibe, vibeTag, tags (JSON), organizationId
 - **leads**: id, propertyId, name, phone, createdAt
 - **notifications**: id, recipientId, type, content (JSON), priority, readStatus, createdAt
 
@@ -70,7 +72,8 @@ A full-stack multi-tenant real estate SaaS platform with two distinct experience
 - `server/storage.ts` - Database storage interface with org-aware CRUD
 - `server/routes.ts` - API routes with requireAgent middleware + org silo logic + super admin bypass
 - `server/notificationService.ts` - Email dispatch via Nodemailer (Ethereal for dev)
-- `server/seed.ts` - Seed data (2 orgs, super admin, default agent, 5 properties)
+- `server/geminiTagger.ts` - Gemini Vision auto-tagging service (8 archetypes + Unclassified fallback)
+- `server/seed.ts` - Seed data (2 orgs, super admin, default agent, 5 properties with vibeTags)
 - `client/src/hooks/use-auth.ts` - Auth hook with org/role/superAdmin info
 - `client/src/pages/login.tsx` - Tabbed login/signup form with invite code
 - `client/src/pages/consumer.tsx` - Consumer swipe app with Framer Motion
@@ -98,6 +101,20 @@ A full-stack multi-tenant real estate SaaS platform with two distinct experience
 - Notification bell in dashboard header with unread count badge
 - Dropdown feed with priority-coded borders (red=critical, gold=high)
 - Mark read/mark all read functionality with 10s polling refresh
+
+### AI Vision Auto-Tagging (Phase 7)
+- **Gemini Integration**: Uses @google/generative-ai with GEMINI_API_KEY secret
+- **8 Archetypes**: Purist, Industrialist, Monarch, Futurist, Naturalist, Curator, Classicist, Nomad
+- **Auto-tag on upload**: POST /api/properties sends first image URL (or vibe text) to Gemini for classification
+- **Fallback**: Defaults to "Unclassified" if API fails or key missing — uploads never break
+- **Re-tag endpoint**: POST /api/properties/:id/retag re-runs classification on existing listings
+- **vibeTag column**: Stored in properties table as text, default "Unclassified"
+
+### Consumer Taste Memory (Phase 7)
+- **Session-based profiles**: tasteProfile stored in express-session (no user accounts needed)
+- **Swipe learning**: Right swipe increments archetype score in taste profile (e.g. {Futurist: 3, Classicist: 1})
+- **Smart feed**: GET /api/properties sorts consumer results by taste profile match percentage
+- **Taste profile endpoint**: GET /api/taste-profile returns current session's accumulated preferences
 
 ### Production Deployment (Phase 6)
 - **PWA**: manifest.json with "Taste: Curated Real Estate" name, custom icons (192/512), standalone display, portrait orientation

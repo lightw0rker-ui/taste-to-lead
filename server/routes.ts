@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPropertySchema, insertLeadSchema, swipeSchema, loginSchema, signupSchema } from "@shared/schema";
 import { sendEmail, buildMatchEmailHtml } from "./notificationService";
+import { classifyPropertyImage } from "./geminiTagger";
 import bcrypt from "bcryptjs";
 
 const SUPER_ADMIN_EMAIL = "vinnysladeb@gmail.com";
@@ -170,10 +171,23 @@ export async function registerRoutes(
         }
       }
 
-      const properties = await storage.getProperties(
+      let results = await storage.getProperties(
         Object.keys(filters).length > 0 ? filters as any : undefined
       );
-      res.json(properties);
+
+      const tasteProfile = req.session?.tasteProfile;
+      if (tasteProfile && Object.keys(tasteProfile).length > 0 && !req.session?.agentId) {
+        const totalSwipes = Object.values(tasteProfile).reduce((a, b) => a + b, 0);
+        results = results.map((p) => {
+          const tag = p.vibeTag || "Unclassified";
+          const score = tag !== "Unclassified" && tasteProfile[tag]
+            ? (tasteProfile[tag] / totalSwipes) * 100
+            : 0;
+          return { ...p, tasteScore: Math.round(score) };
+        }).sort((a, b) => (b as any).tasteScore - (a as any).tasteScore);
+      }
+
+      res.json(results);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -195,6 +209,12 @@ export async function registerRoutes(
     try {
       const parsed = insertPropertySchema.parse(req.body);
       parsed.organizationId = req.session.organizationId ?? null;
+
+      const imageUrl = parsed.images && parsed.images.length > 0 ? parsed.images[0] : null;
+      const tagSource = imageUrl || parsed.vibe || "modern";
+      const vibeTag = await classifyPropertyImage(tagSource);
+      parsed.vibeTag = vibeTag;
+
       const property = await storage.createProperty(parsed);
       res.status(201).json(property);
     } catch (error: any) {
@@ -263,12 +283,25 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/taste-profile", (req, res) => {
+    const profile = req.session.tasteProfile || {};
+    res.json({ tasteProfile: profile });
+  });
+
   app.post("/api/swipe", async (req, res) => {
     try {
       const parsed = swipeSchema.parse(req.body);
       const property = await storage.getProperty(parsed.propertyId);
       if (!property) {
         return res.status(404).json({ message: "Property not found" });
+      }
+
+      if (parsed.direction === "right" && property.vibeTag && property.vibeTag !== "Unclassified") {
+        if (!req.session.tasteProfile) {
+          req.session.tasteProfile = {};
+        }
+        const tag = property.vibeTag;
+        req.session.tasteProfile[tag] = (req.session.tasteProfile[tag] || 0) + 1;
       }
 
       let notification = null;
@@ -357,6 +390,26 @@ export async function registerRoutes(
       const recipientId = (req.body.recipientId as string) || "agent-1";
       await storage.markAllNotificationsRead(recipientId);
       res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/properties/:id/retag", requireAgent, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const existing = await storage.getProperty(id);
+      if (!existing) {
+        return res.status(404).json({ message: "Property not found" });
+      }
+      if (!isSuperAdmin(req) && existing.organizationId !== req.session.organizationId) {
+        return res.status(403).json({ message: "Forbidden: property belongs to another organization" });
+      }
+      const imageUrl = existing.images && existing.images.length > 0 ? existing.images[0] : null;
+      const tagSource = imageUrl || existing.vibe || "modern";
+      const vibeTag = await classifyPropertyImage(tagSource);
+      const updated = await storage.updateProperty(id, { vibeTag });
+      res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
