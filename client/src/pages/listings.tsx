@@ -27,7 +27,7 @@ const propertyFormSchema = z.object({
   location: z.string().min(3, "Location is required"),
   images: z.array(z.string()).default([]),
   status: z.string().default("active"),
-  vibe: z.string().default("modern"),
+  vibe: z.enum(['Purist', 'Industrialist', 'Monarch', 'Futurist', 'Naturalist', 'Curator', 'Classicist', 'Nomad']).default("Purist"),
   agentId: z.string().default("agent-1"),
   tags: z.array(z.string()).default([]),
 });
@@ -150,7 +150,7 @@ export default function Listings() {
       location: "",
       images: [],
       status: "active",
-      vibe: "modern",
+      vibe: "Purist",
       agentId: "agent-1",
     },
   });
@@ -214,7 +214,7 @@ export default function Listings() {
       location: property.location,
       images: property.images || [],
       status: property.status,
-      vibe: property.vibe || "modern",
+      vibe: property.vibe || "Purist",
       agentId: property.agentId,
       tags: property.tags || [],
     });
@@ -232,7 +232,7 @@ export default function Listings() {
       location: "",
       images: [],
       status: "active",
-      vibe: "modern",
+      vibe: "Purist",
       agentId: "agent-1",
       tags: [],
     });
@@ -405,9 +405,9 @@ export default function Listings() {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="modern">Modern</SelectItem>
-                    <SelectItem value="classic">Classic</SelectItem>
-                    <SelectItem value="industrial">Industrial</SelectItem>
+                    {['Purist', 'Industrialist', 'Monarch', 'Futurist', 'Naturalist', 'Curator', 'Classicist', 'Nomad'].map(v => (
+                      <SelectItem key={v} value={v}>{v}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />

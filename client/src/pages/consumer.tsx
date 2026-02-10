@@ -32,7 +32,7 @@ function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) =
     budgetMin: 100000,
     budgetMax: 10000000,
     bedrooms: "2",
-    vibe: "modern",
+    vibe: "Purist",
     mustHaves: [],
     dealBreakers: [],
   });
@@ -130,9 +130,14 @@ function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) =
       content: (
         <div className="grid grid-cols-1 gap-3">
           {[
-            { id: "modern", label: "Modern", desc: "Clean lines, open spaces, minimalist design" },
-            { id: "classic", label: "Classic", desc: "Timeless elegance, rich materials, ornate details" },
-            { id: "industrial", label: "Industrial", desc: "Exposed brick, raw textures, urban character" },
+            { id: "Purist", label: "Purist", desc: "Clean lines, essential forms, zero clutter" },
+            { id: "Industrialist", label: "Industrialist", desc: "Exposed elements, raw textures, urban soul" },
+            { id: "Monarch", label: "Monarch", desc: "Opulent materials, grand scale, regal details" },
+            { id: "Futurist", label: "Futurist", desc: "High-tech integration, fluid shapes, forward-looking" },
+            { id: "Naturalist", label: "Naturalist", desc: "Organic materials, indoor-outdoor flow, earthy tones" },
+            { id: "Curator", label: "Curator", desc: "Art-focused, eclectic mix, highly personalized" },
+            { id: "Classicist", label: "Classicist", desc: "Timeless proportions, historical nods, elegant symmetry" },
+            { id: "Nomad", label: "Nomad", desc: "Flexible spaces, global influences, travel-inspired" },
           ].map((opt) => (
             <button
               key={opt.id}
