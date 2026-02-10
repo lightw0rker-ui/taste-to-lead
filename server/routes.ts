@@ -174,10 +174,11 @@ export async function registerRoutes(
     try {
       const filters: any = {};
       if (req.query.location) filters.location = req.query.location as string;
+      if (req.query.state && req.query.state !== "Anywhere") filters.state = req.query.state as string;
       if (req.query.minPrice) filters.minPrice = parseFloat(req.query.minPrice as string);
       if (req.query.maxPrice) filters.maxPrice = parseFloat(req.query.maxPrice as string);
       if (req.query.bedrooms) filters.bedrooms = parseInt(req.query.bedrooms as string);
-      if (req.query.vibe) filters.vibe = req.query.vibe as string;
+      if (req.query.vibe && req.query.vibe !== "all") filters.vibe = req.query.vibe as string;
       if (req.query.status) filters.status = req.query.status as string;
 
       if (req.session?.agentId && !isSuperAdmin(req)) {

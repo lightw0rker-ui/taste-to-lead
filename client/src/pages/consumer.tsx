@@ -13,6 +13,7 @@ import type { Property } from "@shared/schema";
 
 type OnboardingData = {
   location: string;
+  state: string;
   budgetMin: number;
   budgetMax: number;
   bedrooms: string;
@@ -29,48 +30,38 @@ function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) =
   const [step, setStep] = useState(0);
   const [data, setData] = useState<OnboardingData>({
     location: "",
+    state: "Anywhere",
     budgetMin: 100000,
     budgetMax: 10000000,
     bedrooms: "2",
-    vibe: "Purist",
+    vibe: "all",
     mustHaves: [],
     dealBreakers: [],
   });
 
-  const locations = ["Manhattan, NY", "Brooklyn, NY", "Miami Beach, FL", "Beverly Hills, CA", "Austin, TX", "Chicago, IL"];
-  const [locationSearch, setLocationSearch] = useState("");
-  const filteredLocations = locations.filter(l => l.toLowerCase().includes(locationSearch.toLowerCase()));
+  const stateOptions = ["Anywhere", "Texas", "California", "New York", "Florida"];
 
   const steps = [
     {
       title: "Where are you looking?",
-      subtitle: "Find homes in your ideal neighborhood",
+      subtitle: "Pick a state or explore everywhere",
       content: (
-        <div className="space-y-3">
-          <Input
-            placeholder="Search neighborhoods..."
-            value={locationSearch}
-            onChange={(e) => setLocationSearch(e.target.value)}
-            className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
-            data-testid="input-onboarding-location"
-          />
-          <div className="space-y-1.5 max-h-48 overflow-y-auto">
-            {filteredLocations.map((loc) => (
-              <button
-                key={loc}
-                onClick={() => { setData(d => ({ ...d, location: loc })); setLocationSearch(loc); }}
-                className={`w-full text-left px-3 py-2.5 rounded-md text-sm transition-colors ${
-                  data.location === loc
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-white/5 text-white/80 hover-elevate"
-                }`}
-                data-testid={`button-location-${loc.replace(/[,\s]/g, '-').toLowerCase()}`}
-              >
-                <MapPin className="w-3.5 h-3.5 inline mr-2 opacity-60" />
-                {loc}
-              </button>
-            ))}
-          </div>
+        <div className="space-y-2">
+          {stateOptions.map((st) => (
+            <button
+              key={st}
+              onClick={() => setData(d => ({ ...d, state: st, location: "" }))}
+              className={`w-full text-left px-4 py-3 rounded-md text-sm font-medium transition-colors ${
+                data.state === st
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-white/5 text-white/80 hover-elevate"
+              }`}
+              data-testid={`button-state-${st.toLowerCase().replace(/\s/g, '-')}`}
+            >
+              <MapPin className="w-3.5 h-3.5 inline mr-2 opacity-60" />
+              {st}
+            </button>
+          ))}
         </div>
       ),
     },
@@ -130,6 +121,7 @@ function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) =
       content: (
         <div className="grid grid-cols-1 gap-3 flex-1 overflow-visible">
           {[
+            { id: "all", label: "Surprise Me", desc: "No preference — show me everything" },
             { id: "Purist", label: "Purist", desc: "Clean lines, essential forms, zero clutter" },
             { id: "Industrialist", label: "Industrialist", desc: "Exposed elements, raw textures, urban soul" },
             { id: "Monarch", label: "Monarch", desc: "Opulent materials, grand scale, regal details" },
@@ -209,7 +201,7 @@ function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) =
   ];
 
   const currentStep = steps[step];
-  const canProceed = step === 0 ? data.location !== "" : true;
+  const canProceed = step === 0 ? data.state !== "" : true;
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
@@ -284,8 +276,10 @@ function computeMatchScore(
   let score = 0;
   let maxScore = 0;
 
-  maxScore += 30;
-  if (filters.vibe && property.vibe === filters.vibe) score += 30;
+  if (filters.vibe && filters.vibe !== "all") {
+    maxScore += 30;
+    if (property.vibe === filters.vibe) score += 30;
+  }
 
   maxScore += 30;
   const bedroomTarget = filters.bedrooms === "Studio" ? 0 : parseInt(filters.bedrooms.replace("+", ""), 10);
@@ -686,13 +680,14 @@ export default function Consumer() {
   const buildQuery = () => {
     if (!filters) return "/api/properties";
     const params = new URLSearchParams();
+    if (filters.state && filters.state !== "Anywhere") params.set("state", filters.state);
     if (filters.location) params.set("location", filters.location);
     if (filters.budgetMin) params.set("minPrice", filters.budgetMin.toString());
     if (filters.budgetMax) params.set("maxPrice", filters.budgetMax.toString());
     if (filters.bedrooms && filters.bedrooms !== "Studio") {
       params.set("bedrooms", filters.bedrooms.replace("+", ""));
     }
-    if (filters.vibe) params.set("vibe", filters.vibe);
+    if (filters.vibe && filters.vibe !== "all") params.set("vibe", filters.vibe);
     params.set("status", "active");
     return `/api/properties?${params.toString()}`;
   };
@@ -700,6 +695,7 @@ export default function Consumer() {
   const buildFallbackQuery = () => {
     if (!filters) return "/api/properties";
     const params = new URLSearchParams();
+    if (filters.state && filters.state !== "Anywhere") params.set("state", filters.state);
     if (filters.location) params.set("location", filters.location);
     if (filters.budgetMin) params.set("minPrice", filters.budgetMin.toString());
     if (filters.budgetMax) params.set("maxPrice", filters.budgetMax.toString());
@@ -727,18 +723,17 @@ export default function Consumer() {
   const allProperties = filteredProperties;
 
   const properties = (allProperties?.filter(p => {
-    // Deal-breaker filter
     if (filters?.dealBreakers?.length) {
       if (filters.dealBreakers.some(tag => p.tags?.includes(tag))) return false;
     }
     return !swipedIds.has(p.id);
   }) ?? []).sort((a, b) => {
-    if (filters?.vibe) {
+    if (filters?.vibe && filters.vibe !== "all") {
       const aMatch = a.vibe === filters.vibe ? 0 : 1;
       const bMatch = b.vibe === filters.vibe ? 0 : 1;
       return aMatch - bMatch;
     }
-    return 0;
+    return Math.random() - 0.5;
   });
 
   const swipeMutation = useMutation({

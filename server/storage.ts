@@ -5,6 +5,7 @@ import { eq, and, gte, lte, ilike, desc, sql } from "drizzle-orm";
 export interface IStorage {
   getProperties(filters?: {
     location?: string;
+    state?: string;
     minPrice?: number;
     maxPrice?: number;
     bedrooms?: number;
@@ -38,6 +39,7 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   async getProperties(filters?: {
     location?: string;
+    state?: string;
     minPrice?: number;
     maxPrice?: number;
     bedrooms?: number;
@@ -49,6 +51,9 @@ export class DatabaseStorage implements IStorage {
 
     if (filters?.location) {
       conditions.push(ilike(properties.location, `%${filters.location}%`));
+    }
+    if (filters?.state) {
+      conditions.push(ilike(properties.location, `%${filters.state}%`));
     }
     if (filters?.minPrice) {
       conditions.push(gte(properties.price, filters.minPrice));
