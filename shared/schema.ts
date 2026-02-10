@@ -112,6 +112,23 @@ export const insertSyncRequestSchema = createInsertSchema(syncRequests).omit({
 export type InsertSyncRequest = z.infer<typeof insertSyncRequestSchema>;
 export type SyncRequest = typeof syncRequests.$inferSelect;
 
+export const swipes = pgTable("swipes", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  sessionId: text("session_id").notNull(),
+  propertyId: integer("property_id").notNull(),
+  direction: text("direction").notNull(),
+  matchScore: integer("match_score").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertSwipeSchema = createInsertSchema(swipes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertSwipe = z.infer<typeof insertSwipeSchema>;
+export type Swipe = typeof swipes.$inferSelect;
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),

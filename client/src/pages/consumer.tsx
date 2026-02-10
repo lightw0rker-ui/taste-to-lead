@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion, useMotionValue, useTransform, animate, PanInfo, AnimatePresence } from "framer-motion";
-import { MapPin, Bed, Bath, Ruler, ArrowLeft, Heart, X as XIcon, SlidersHorizontal, Sparkles, Sun } from "lucide-react";
+import { MapPin, Bed, Bath, Ruler, ArrowLeft, Heart, X as XIcon, SlidersHorizontal, Sparkles, Sun, User } from "lucide-react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -576,105 +577,33 @@ function SwipeCard({
   );
 }
 
-function MatchOverlay({ property, onClose }: { property: Property; onClose: () => void }) {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const { toast } = useToast();
-
-  const submitMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/leads", {
-        propertyId: property.id,
-        name,
-        phone,
-      });
-      return res.json();
-    },
-    onSuccess: () => {
-      toast({ title: "Details unlocked! An agent will contact you soon." });
-      onClose();
-    },
-    onError: (err: Error) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    },
-  });
-
+function HeartBurst({ onDone }: { onDone: () => void }) {
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      initial={{ opacity: 1 }}
+      animate={{ opacity: 0 }}
+      transition={{ duration: 1.2, ease: "easeOut" }}
+      onAnimationComplete={onDone}
+      className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center"
+      data-testid="heart-burst-animation"
     >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className="relative z-10 w-full max-w-sm rounded-2xl border border-white/10 bg-card/95 backdrop-blur-xl p-6 space-y-5"
+        initial={{ scale: 0.3, opacity: 1 }}
+        animate={{ scale: 2.5, opacity: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
       >
-        <div className="text-center space-y-2">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 400 }}
-            className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto"
-          >
-            <Heart className="w-8 h-8 text-primary" />
-          </motion.div>
-          <h2 className="text-xl font-bold" data-testid="text-match-title">It's a Match!</h2>
-          <p className="text-sm text-muted-foreground">
-            Unlock the address and agent details for <span className="font-medium text-foreground">{property.title}</span>
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label className="text-sm text-muted-foreground">Your Name</Label>
-            <Input
-              placeholder="Enter your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              data-testid="input-lead-name"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm text-muted-foreground">Phone Number</Label>
-            <Input
-              placeholder="+1 (555) 000-0000"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              data-testid="input-lead-phone"
-            />
-          </div>
-        </div>
-
-        <Button
-          className="w-full"
-          onClick={() => submitMutation.mutate()}
-          disabled={!name.trim() || !phone.trim() || submitMutation.isPending}
-          data-testid="button-submit-lead"
-        >
-          {submitMutation.isPending ? "Submitting..." : "Unlock Details"}
-        </Button>
-
-        <button
-          onClick={onClose}
-          className="w-full text-center text-xs text-muted-foreground py-1"
-          data-testid="button-skip-match"
-        >
-          Maybe later
-        </button>
+        <Heart className="w-16 h-16 text-red-500 fill-red-500" />
       </motion.div>
     </motion.div>
   );
 }
 
 export default function Consumer() {
+  const [, navigate] = useLocation();
   const [filters, setFilters] = useState<OnboardingData | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [matchProperty, setMatchProperty] = useState<Property | null>(null);
+  const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [swipedIds, setSwipedIds] = useState<Set<number>>(new Set());
 
   const buildQuery = () => {
@@ -767,7 +696,7 @@ export default function Consumer() {
 
     if (dir === "right") {
       triggerHaptic([15, 30, 15]);
-      setMatchProperty(property);
+      setShowHeartBurst(true);
     }
   };
 
@@ -795,9 +724,14 @@ export default function Consumer() {
   return (
     <div className="fixed inset-0 bg-background flex flex-col font-serif">
       <header className="flex items-center justify-between gap-4 p-4 border-b border-border shrink-0 bg-background/50 backdrop-blur-md">
-        <Button variant="ghost" size="icon" onClick={resetFilters} data-testid="button-reset-filters">
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={resetFilters} data-testid="button-reset-filters">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/my-taste")} data-testid="button-my-taste">
+            <User className="w-5 h-5" />
+          </Button>
+        </div>
         <h1 className="font-bold text-2xl tracking-tighter italic text-primary" data-testid="text-consumer-title">Taste</h1>
         <Button variant="ghost" size="icon" onClick={() => setShowOnboarding(true)} data-testid="button-adjust-filters">
           <SlidersHorizontal className="w-5 h-5" />
@@ -858,12 +792,11 @@ export default function Consumer() {
         </div>
       )}
 
-      {matchProperty && (
-        <MatchOverlay
-          property={matchProperty}
-          onClose={() => setMatchProperty(null)}
-        />
-      )}
+      <AnimatePresence>
+        {showHeartBurst && (
+          <HeartBurst onDone={() => setShowHeartBurst(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

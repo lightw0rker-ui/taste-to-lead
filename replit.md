@@ -32,6 +32,7 @@ A full-stack multi-tenant real estate SaaS platform with two distinct experience
 - `/agent/listings` - Property CRUD grid (protected)
 - `/agent/settings` - Agent preferences (protected)
 - `/admin` - God Mode admin dashboard (admin only, requires isAdmin)
+- `/my-taste` - Consumer taste profile dashboard (public)
 - `/discover` - Redirects to `/`
 - `/dashboard` - Redirects to `/agent`
 
@@ -62,6 +63,7 @@ A full-stack multi-tenant real estate SaaS platform with two distinct experience
 - `PATCH /api/notifications/read-all` - Mark all read (agent only)
 - `GET /api/organizations` - List all orgs (super admin only)
 - `POST /api/auth/signup` - Register new agent with optional invite code
+- `GET /api/user/stats` - Consumer taste stats with vibe percentages, top picks, saved homes (public, session-based)
 - `POST /api/sync-requests` - Submit website import request (premium only)
 - `GET /api/sync-requests` - List user's sync requests (agent only)
 
@@ -71,6 +73,7 @@ A full-stack multi-tenant real estate SaaS platform with two distinct experience
 - **properties**: id, title, description, price, bedrooms, bathrooms, sqft, location, images (JSON), agentId, status, vibe, vibeTag, tags (JSON), organizationId
 - **leads**: id, propertyId, name, phone, createdAt
 - **notifications**: id, recipientId, type, content (JSON), priority, readStatus, createdAt
+- **swipes**: id, sessionId, propertyId, direction, matchScore, createdAt
 - **sync_requests**: id, userId, websiteUrl, status, createdAt
 
 ### Key Files
@@ -82,7 +85,8 @@ A full-stack multi-tenant real estate SaaS platform with two distinct experience
 - `server/seed.ts` - Seed data (2 orgs, super admin, default agent, 5 properties with vibeTags)
 - `client/src/hooks/use-auth.ts` - Auth hook with org/role/superAdmin info
 - `client/src/pages/login.tsx` - Tabbed login/signup form with invite code
-- `client/src/pages/consumer.tsx` - Consumer swipe app with Framer Motion
+- `client/src/pages/consumer.tsx` - Consumer swipe app with Framer Motion (silent swipe, heart burst animation)
+- `client/src/pages/my-taste.tsx` - Consumer taste profile dashboard with vibe chart, top picks, saved homes
 - `client/src/pages/dashboard.tsx` - Agent dashboard
 - `client/src/pages/listings.tsx` - Property CRUD grid with lifestyle tag selector
 - `client/src/components/app-sidebar.tsx` - Agent navigation sidebar with org name + logout
@@ -121,6 +125,19 @@ A full-stack multi-tenant real estate SaaS platform with two distinct experience
 - **Swipe learning**: Right swipe increments archetype score in taste profile (e.g. {Futurist: 3, Classicist: 1})
 - **Smart feed**: GET /api/properties sorts consumer results by taste profile match percentage
 - **Taste profile endpoint**: GET /api/taste-profile returns current session's accumulated preferences
+
+### Silent Swipe & My Taste Dashboard (Phase 9)
+- **Silent Swipe**: Removed "It's a Match!" popup. Right swipe shows subtle HeartBurst animation (scale+fade) and immediately loads next card. No interruption to user flow.
+- **Swipes table**: Database table tracks all swipes (sessionId, propertyId, direction, matchScore, createdAt)
+- **GET /api/user/stats**: Calculates vibe percentages from right swipes, returns top picks (unseen properties matching #1 vibe) and saved homes
+- **My Taste page** (`/my-taste`): Consumer stats dashboard with vibe chart (animated bars), top picks grid, saved homes grid
+- **Navigation**: User icon button in consumer header navigates to /my-taste; back button returns to swipe view
+
+### AI Virtual Staging (Phase 9)
+- **Admin "AI Staging" tab**: Upload empty room photo → "Generate 8 Realities" button
+- **Simulated mode**: Displays uploaded image 8 times with different vibe labels (Monarch, Purist, etc.) and "Regenerate" buttons
+- **DALL-E 3 integration**: Commented-out code for real OpenAI DALL-E 3 generation (add OPENAI_API_KEY to enable)
+- **Endpoint (commented)**: POST /api/admin/stage would generate styled room images via DALL-E 3
 
 ### Lemon Squeezy Payments (Phase 8)
 - **Webhook**: POST /api/webhooks/lemon-squeezy with HMAC SHA256 signature verification

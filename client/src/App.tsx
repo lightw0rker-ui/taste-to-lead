@@ -14,6 +14,7 @@ import Settings from "@/pages/settings";
 import Consumer from "@/pages/consumer";
 import Login from "@/pages/login";
 import Admin from "@/pages/admin";
+import MyTaste from "@/pages/my-taste";
 
 function AgentLayout({ children }: { children: React.ReactNode }) {
   const style = {
@@ -82,6 +83,7 @@ function Router() {
           <AgentLayout><Admin /></AgentLayout>
         </ProtectedRoute>
       </Route>
+      <Route path="/my-taste" component={MyTaste} />
       <Route path="/discover">
         <Redirect to="/" />
       </Route>

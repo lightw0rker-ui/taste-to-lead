@@ -1,4 +1,4 @@
-import { properties, leads, notifications, agents, organizations, syncRequests, type Property, type InsertProperty, type Lead, type InsertLead, type Notification, type InsertNotification, type Agent, type InsertAgent, type Organization, type InsertOrganization, type SyncRequest, type InsertSyncRequest } from "@shared/schema";
+import { properties, leads, notifications, agents, organizations, syncRequests, swipes, type Property, type InsertProperty, type Lead, type InsertLead, type Notification, type InsertNotification, type Agent, type InsertAgent, type Organization, type InsertOrganization, type SyncRequest, type InsertSyncRequest, type Swipe, type InsertSwipe } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, ilike, desc, sql } from "drizzle-orm";
 
@@ -37,6 +37,10 @@ export interface IStorage {
   getAllAgents(): Promise<Agent[]>;
   getAllProperties(): Promise<Property[]>;
   updateAgent(id: number, data: Partial<InsertAgent>): Promise<Agent | undefined>;
+  createSwipe(data: InsertSwipe): Promise<Swipe>;
+  getSwipesBySession(sessionId: string): Promise<Swipe[]>;
+  getRightSwipesBySession(sessionId: string): Promise<Swipe[]>;
+  getSwipedPropertyIdsBySession(sessionId: string): Promise<number[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -215,6 +219,30 @@ export class DatabaseStorage implements IStorage {
   async updateAgent(id: number, data: Partial<InsertAgent>): Promise<Agent | undefined> {
     const [agent] = await db.update(agents).set(data).where(eq(agents.id, id)).returning();
     return agent;
+  }
+
+  async createSwipe(data: InsertSwipe): Promise<Swipe> {
+    const [swipe] = await db.insert(swipes).values(data).returning();
+    return swipe;
+  }
+
+  async getSwipesBySession(sessionId: string): Promise<Swipe[]> {
+    return db.select().from(swipes)
+      .where(eq(swipes.sessionId, sessionId))
+      .orderBy(desc(swipes.createdAt));
+  }
+
+  async getRightSwipesBySession(sessionId: string): Promise<Swipe[]> {
+    return db.select().from(swipes)
+      .where(and(eq(swipes.sessionId, sessionId), eq(swipes.direction, "right")))
+      .orderBy(desc(swipes.createdAt));
+  }
+
+  async getSwipedPropertyIdsBySession(sessionId: string): Promise<number[]> {
+    const rows = await db.select({ propertyId: swipes.propertyId })
+      .from(swipes)
+      .where(eq(swipes.sessionId, sessionId));
+    return rows.map(r => r.propertyId);
   }
 }
 

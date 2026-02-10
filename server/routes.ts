@@ -315,6 +315,59 @@ export async function registerRoutes(
     res.json({ tasteProfile: profile });
   });
 
+  app.get("/api/user/stats", async (req, res) => {
+    try {
+      const sessionId = req.sessionID || "anonymous";
+      const rightSwipes = await storage.getRightSwipesBySession(sessionId);
+      const swipedPropertyIds = rightSwipes.map(s => s.propertyId);
+
+      const vibeCounts: Record<string, number> = {};
+      let totalTagged = 0;
+
+      for (const swipe of rightSwipes) {
+        const property = await storage.getProperty(swipe.propertyId);
+        if (property?.vibeTag && property.vibeTag !== "Unclassified") {
+          vibeCounts[property.vibeTag] = (vibeCounts[property.vibeTag] || 0) + 1;
+          totalTagged++;
+        }
+      }
+
+      const vibePercentages = Object.entries(vibeCounts)
+        .map(([vibe, count]) => ({
+          vibe,
+          count,
+          percentage: totalTagged > 0 ? Math.round((count / totalTagged) * 100) : 0,
+        }))
+        .sort((a, b) => b.count - a.count);
+
+      const topVibe = vibePercentages[0]?.vibe || null;
+
+      let topPicks: any[] = [];
+      if (topVibe) {
+        const allProperties = await storage.getProperties({ status: "active" });
+        topPicks = allProperties
+          .filter(p => p.vibeTag === topVibe && !swipedPropertyIds.includes(p.id))
+          .slice(0, 6);
+      }
+
+      const savedHomes: any[] = [];
+      for (const id of swipedPropertyIds) {
+        const property = await storage.getProperty(id);
+        if (property) savedHomes.push(property);
+      }
+
+      res.json({
+        vibePercentages,
+        topVibe,
+        topPicks,
+        savedHomes,
+        totalSwipes: rightSwipes.length,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.post("/api/swipe", async (req, res) => {
     try {
       const parsed = swipeSchema.parse(req.body);
@@ -322,6 +375,14 @@ export async function registerRoutes(
       if (!property) {
         return res.status(404).json({ message: "Property not found" });
       }
+
+      const sessionId = req.sessionID || "anonymous";
+      await storage.createSwipe({
+        sessionId,
+        propertyId: parsed.propertyId,
+        direction: parsed.direction,
+        matchScore: parsed.matchScore,
+      });
 
       if (parsed.direction === "right" && property.vibeTag && property.vibeTag !== "Unclassified") {
         if (!req.session.tasteProfile) {
