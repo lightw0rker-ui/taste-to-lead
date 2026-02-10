@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, MapPin, Bed, Bath, Ruler, X, Building2 } from "lucide-react";
+import { Plus, Pencil, Trash2, MapPin, Bed, Bath, Ruler, X, Building2, Lock, Crown, ExternalLink } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Property } from "@shared/schema";
 
@@ -131,8 +132,11 @@ export default function Listings() {
   const [showForm, setShowForm] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [deletingProperty, setDeletingProperty] = useState<Property | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
   const { toast } = useToast();
+  const { isPremium, isSuperAdmin } = useAuth();
+  const canUsePremiumFeatures = isPremium || isSuperAdmin;
 
   const { data: properties, isLoading } = useQuery<Property[]>({
     queryKey: ["/api/properties"],
@@ -500,9 +504,27 @@ export default function Listings() {
           <h1 className="text-2xl font-bold tracking-tight" data-testid="text-listings-title">Listings</h1>
           <p className="text-muted-foreground text-sm mt-1">{properties?.length ?? 0} properties in your portfolio</p>
         </div>
-        <Button onClick={handleOpenCreate} data-testid="button-create-listing">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Listing
+        <Button
+          onClick={() => {
+            if (!canUsePremiumFeatures) {
+              setShowUpgradeModal(true);
+            } else {
+              handleOpenCreate();
+            }
+          }}
+          data-testid="button-create-listing"
+        >
+          {!canUsePremiumFeatures ? (
+            <>
+              <Lock className="w-4 h-4 mr-2" />
+              Add Listing
+            </>
+          ) : (
+            <>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Listing
+            </>
+          )}
         </Button>
       </div>
 
@@ -513,9 +535,28 @@ export default function Listings() {
           <p className="text-muted-foreground text-sm mt-1 max-w-sm">
             Create your first property listing to get started
           </p>
-          <Button className="mt-4" onClick={handleOpenCreate} data-testid="button-create-first">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Your First Listing
+          <Button
+            className="mt-4"
+            onClick={() => {
+              if (!canUsePremiumFeatures) {
+                setShowUpgradeModal(true);
+              } else {
+                handleOpenCreate();
+              }
+            }}
+            data-testid="button-create-first"
+          >
+            {!canUsePremiumFeatures ? (
+              <>
+                <Lock className="w-4 h-4 mr-2" />
+                Add Your First Listing
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Your First Listing
+              </>
+            )}
           </Button>
         </Card>
       ) : (
@@ -566,6 +607,29 @@ export default function Listings() {
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
+        <DialogContent className="max-w-sm backdrop-blur-xl bg-card border-card-border text-center" data-testid="dialog-upgrade-listings">
+          <DialogHeader className="items-center">
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-amber-500/10 mb-2">
+              <Crown className="w-7 h-7 text-amber-400" />
+            </div>
+            <DialogTitle className="text-xl">Unlock Premium Features</DialogTitle>
+            <DialogDescription className="text-sm">
+              Upgrade to Premium to create and manage listings, import properties, and more.
+            </DialogDescription>
+          </DialogHeader>
+          <Button
+            data-testid="button-modal-upgrade-listings"
+            onClick={() => window.open("https://esotarot.lemonsqueezy.com/checkout", "_blank")}
+            className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-semibold mt-2"
+          >
+            <Crown className="w-4 h-4 mr-2" />
+            Upgrade to Premium
+            <ExternalLink className="w-3 h-3 ml-2" />
+          </Button>
         </DialogContent>
       </Dialog>
     </div>

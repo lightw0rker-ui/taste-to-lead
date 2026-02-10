@@ -95,6 +95,22 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
 
+export const syncRequests = pgTable("sync_requests", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: integer("user_id").notNull(),
+  websiteUrl: text("website_url").notNull(),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertSyncRequestSchema = createInsertSchema(syncRequests).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertSyncRequest = z.infer<typeof insertSyncRequestSchema>;
+export type SyncRequest = typeof syncRequests.$inferSelect;
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),

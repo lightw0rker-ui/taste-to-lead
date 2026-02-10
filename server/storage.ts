@@ -1,4 +1,4 @@
-import { properties, leads, notifications, agents, organizations, type Property, type InsertProperty, type Lead, type InsertLead, type Notification, type InsertNotification, type Agent, type InsertAgent, type Organization, type InsertOrganization } from "@shared/schema";
+import { properties, leads, notifications, agents, organizations, syncRequests, type Property, type InsertProperty, type Lead, type InsertLead, type Notification, type InsertNotification, type Agent, type InsertAgent, type Organization, type InsertOrganization, type SyncRequest, type InsertSyncRequest } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, ilike, desc, sql } from "drizzle-orm";
 
@@ -31,6 +31,8 @@ export interface IStorage {
   getOrganization(id: number): Promise<Organization | undefined>;
   getOrganizationByInviteCode(code: string): Promise<Organization | undefined>;
   getAllOrganizations(): Promise<Organization[]>;
+  createSyncRequest(data: InsertSyncRequest): Promise<SyncRequest>;
+  getSyncRequests(userId: number): Promise<SyncRequest[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -181,6 +183,17 @@ export class DatabaseStorage implements IStorage {
 
   async getAllOrganizations(): Promise<Organization[]> {
     return db.select().from(organizations);
+  }
+
+  async createSyncRequest(data: InsertSyncRequest): Promise<SyncRequest> {
+    const [request] = await db.insert(syncRequests).values(data).returning();
+    return request;
+  }
+
+  async getSyncRequests(userId: number): Promise<SyncRequest[]> {
+    return db.select().from(syncRequests)
+      .where(eq(syncRequests.userId, userId))
+      .orderBy(desc(syncRequests.createdAt));
   }
 }
 

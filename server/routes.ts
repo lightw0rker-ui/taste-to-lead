@@ -421,6 +421,38 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/sync-requests", requireAgent, async (req, res) => {
+    try {
+      const agent = await storage.getAgent(req.session.agentId);
+      if (!agent || (agent.subscriptionTier !== "premium" && agent.email !== SUPER_ADMIN_EMAIL)) {
+        return res.status(403).json({ message: "Premium subscription required" });
+      }
+
+      const { websiteUrl } = req.body;
+      if (!websiteUrl || typeof websiteUrl !== "string" || !websiteUrl.startsWith("http")) {
+        return res.status(400).json({ message: "A valid website URL is required" });
+      }
+
+      const syncRequest = await storage.createSyncRequest({
+        userId: req.session.agentId,
+        websiteUrl,
+        status: "pending",
+      });
+      res.status(201).json(syncRequest);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/sync-requests", requireAgent, async (req, res) => {
+    try {
+      const requests = await storage.getSyncRequests(req.session.agentId);
+      res.json(requests);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/organizations", requireAgent, async (req, res) => {
     try {
       if (!isSuperAdmin(req)) {

@@ -59,13 +59,16 @@ A full-stack multi-tenant real estate SaaS platform with two distinct experience
 - `PATCH /api/notifications/read-all` - Mark all read (agent only)
 - `GET /api/organizations` - List all orgs (super admin only)
 - `POST /api/auth/signup` - Register new agent with optional invite code
+- `POST /api/sync-requests` - Submit website import request (premium only)
+- `GET /api/sync-requests` - List user's sync requests (agent only)
 
 ### Database Schema
 - **organizations**: id, name, subscriptionTier, logoUrl, inviteCode, createdAt
-- **agents**: id, email, passwordHash, name, role (agent|super_admin), organizationId
+- **agents**: id, email, passwordHash, name, role (agent|super_admin), subscriptionTier, organizationId
 - **properties**: id, title, description, price, bedrooms, bathrooms, sqft, location, images (JSON), agentId, status, vibe, vibeTag, tags (JSON), organizationId
 - **leads**: id, propertyId, name, phone, createdAt
 - **notifications**: id, recipientId, type, content (JSON), priority, readStatus, createdAt
+- **sync_requests**: id, userId, websiteUrl, status, createdAt
 
 ### Key Files
 - `shared/schema.ts` - Drizzle schema + Zod validation (organizations, agents, properties, leads, notifications, loginSchema, signupSchema, swipeSchema)
