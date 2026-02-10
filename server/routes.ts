@@ -35,16 +35,6 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
-  if (process.env.NODE_ENV === "production") {
-    app.use((req, res, next) => {
-      const hostname = req.hostname || req.headers.host || "";
-      if (hostname.includes("replit.app") || hostname.includes("replit.dev")) {
-        const redirectUrl = `https://tastetolead.com${req.originalUrl}`;
-        return res.redirect(301, redirectUrl);
-      }
-      next();
-    });
-  }
 
   app.post("/api/auth/login", async (req, res) => {
     try {
