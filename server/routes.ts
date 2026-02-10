@@ -587,6 +587,68 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/staging-hooks", requireAdmin, async (req, res) => {
+    try {
+      const { roomDescription } = req.body;
+      const archetypes = [
+        { name: "Monarch", keywords: "Penthouse, Gold, Marble, Velvet, Crystal, Grand, Opulent", psychology: "Status, Power, Dominance" },
+        { name: "Industrialist", keywords: "Loft, Warehouse, Exposed Brick, Concrete, Steel Beams, Raw", psychology: "Authenticity, Strength" },
+        { name: "Purist", keywords: "Minimalist, White, Clean Lines, Seamless, Hidden Storage, Zero Clutter", psychology: "Discipline, Clarity, Focus" },
+        { name: "Naturalist", keywords: "Sanctuary, Biophilic, Plants, Green, Indoor-Outdoor, Retreat, Wood", psychology: "Grounding, Peace, Wellness" },
+        { name: "Futurist", keywords: "Smart Home, Tech, Neon, LED, Glass, Chrome, Sleek, Automated", psychology: "Innovation, Speed, Efficiency" },
+        { name: "Curator", keywords: "Art, Gallery, Eclectic, Bold, Color, Statement, Unique, Mural", psychology: "Expression, Storytelling, Uniqueness" },
+        { name: "Nomad", keywords: "Boho, Eclectic, Travel, Collected, Rugs, Texture, Earth Tones, Global", psychology: "Freedom, Warmth, Experience" },
+        { name: "Classicist", keywords: "Historic, Traditional, Estate, Molding, Library, Wood Paneling, Timeless", psychology: "Legacy, History, Respect" },
+      ];
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        const fallbackHooks = archetypes.map(a => ({
+          archetype: a.name,
+          hook: `Experience this space reimagined through the ${a.name} lens — where ${a.psychology.toLowerCase()} meets inspired design.`,
+        }));
+        return res.json({ hooks: fallbackHooks });
+      }
+
+      const { GoogleGenerativeAI } = await import("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+      const prompt = `You are a luxury real estate copywriter. Generate a short, compelling "Selling Hook" (1-2 sentences max) for each of these 8 interior design archetypes applied to a room.${roomDescription ? ` The room is described as: "${roomDescription}".` : ""} 
+
+For each archetype, write a hook that would make a buyer emotionally connect with the staged version.
+
+Return ONLY a valid JSON array with exactly 8 objects, each with "archetype" and "hook" keys. No markdown, no code fences.
+
+The 8 archetypes:
+${archetypes.map(a => `- ${a.name}: ${a.keywords}. Psychology: ${a.psychology}`).join("\n")}`;
+
+      const result = await model.generateContent(prompt);
+      const text = result.response.text().trim();
+
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        try {
+          const hooks = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(hooks) && hooks.length > 0 && hooks[0].archetype && hooks[0].hook) {
+            return res.json({ hooks });
+          }
+        } catch {
+          console.warn("[StagingHooks] Failed to parse Gemini JSON, using fallbacks");
+        }
+      }
+
+      const fallbackHooks = archetypes.map(a => ({
+        archetype: a.name,
+        hook: `Experience this space reimagined through the ${a.name} lens — where ${a.psychology.toLowerCase()} meets inspired design.`,
+      }));
+      res.json({ hooks: fallbackHooks });
+    } catch (error: any) {
+      console.error("[StagingHooks] Error:", error.message);
+      res.status(500).json({ message: "Failed to generate selling hooks" });
+    }
+  });
+
   app.post("/api/webhooks/lemon-squeezy", async (req, res) => {
     try {
       const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
