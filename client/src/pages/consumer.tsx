@@ -128,7 +128,7 @@ function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) =
       title: "What's your vibe?",
       subtitle: "Choose your style preference",
       content: (
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-3 flex-1 overflow-visible">
           {[
             { id: "Purist", label: "Purist", desc: "Clean lines, essential forms, zero clutter" },
             { id: "Industrialist", label: "Industrialist", desc: "Exposed elements, raw textures, urban soul" },
@@ -213,56 +213,58 @@ function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) =
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
-      <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-md mx-auto w-full">
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.3 }}
-          className="w-full space-y-6"
-        >
-          <div className="text-center space-y-2">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              {steps.map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1 rounded-full transition-all duration-300 ${
-                    i <= step ? "w-8 bg-primary" : "w-4 bg-white/10"
-                  }`}
-                />
-              ))}
+      <div className="flex-1 overflow-y-auto w-full">
+        <div className="flex flex-col items-center justify-start p-6 max-w-md mx-auto w-full min-h-full">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="w-full space-y-6 py-8 flex flex-col"
+          >
+            <div className="text-center space-y-2">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                {steps.map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-1 rounded-full transition-all duration-300 ${
+                      i <= step ? "w-8 bg-primary" : "w-4 bg-white/10"
+                    }`}
+                  />
+                ))}
+              </div>
+              <h2 className="text-2xl font-bold text-foreground" data-testid="text-onboarding-title">{currentStep.title}</h2>
+              <p className="text-muted-foreground text-sm">{currentStep.subtitle}</p>
             </div>
-            <h2 className="text-2xl font-bold text-foreground" data-testid="text-onboarding-title">{currentStep.title}</h2>
-            <p className="text-muted-foreground text-sm">{currentStep.subtitle}</p>
-          </div>
 
-          {currentStep.content}
+            {currentStep.content}
 
-          <div className="flex gap-3 pt-4">
-            {step > 0 && (
+            <div className="flex gap-3 pt-4">
+              {step > 0 && (
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setStep(s => s - 1)}
+                  data-testid="button-onboarding-back"
+                >
+                  Back
+                </Button>
+              )}
               <Button
-                variant="outline"
                 className="flex-1"
-                onClick={() => setStep(s => s - 1)}
-                data-testid="button-onboarding-back"
+                onClick={() => {
+                  if (step < steps.length - 1) setStep(s => s + 1);
+                  else onComplete(data);
+                }}
+                disabled={!canProceed}
+                data-testid="button-onboarding-next"
               >
-                Back
+                {step === steps.length - 1 ? "Find Homes" : "Continue"}
               </Button>
-            )}
-            <Button
-              className="flex-1"
-              onClick={() => {
-                if (step < steps.length - 1) setStep(s => s + 1);
-                else onComplete(data);
-              }}
-              disabled={!canProceed}
-              data-testid="button-onboarding-next"
-            >
-              {step === steps.length - 1 ? "Find Homes" : "Continue"}
-            </Button>
-          </div>
-        </motion.div>
+            </div>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
