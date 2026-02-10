@@ -114,9 +114,11 @@ A full-stack multi-tenant real estate SaaS platform with two distinct experience
 
 ### AI Vision Auto-Tagging (Phase 7)
 - **Gemini Integration**: Uses @google/generative-ai with GEMINI_API_KEY secret
+- **"Vibe Bible" Strict Classification**: 8 mutually exclusive archetypes with keyword, visual, and psychology matching
 - **8 Archetypes**: Purist, Industrialist, Monarch, Futurist, Naturalist, Curator, Classicist, Nomad
 - **Auto-tag on upload**: POST /api/properties sends first image URL (or vibe text) to Gemini for classification
-- **Fallback**: Defaults to "Unclassified" if API fails or key missing — uploads never break
+- **Ambiguity rules**: Vibrant/bold → Curator, neutral/traditional → Classicist
+- **Fallback**: Defaults to "Classicist" if AI response is ambiguous; "Unclassified" only if API fails or key missing
 - **Re-tag endpoint**: POST /api/properties/:id/retag re-runs classification on existing listings
 - **vibeTag column**: Stored in properties table as text, default "Unclassified"
 
