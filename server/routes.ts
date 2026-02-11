@@ -597,6 +597,18 @@ export async function registerRoutes(
       if (!websiteUrl || typeof websiteUrl !== "string" || !websiteUrl.startsWith("http")) {
         return res.status(400).json({ message: "A valid website URL is required" });
       }
+      try {
+        const parsed = new URL(websiteUrl);
+        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+          return res.status(400).json({ message: "Only HTTP/HTTPS URLs are allowed" });
+        }
+        const blocked = ["localhost", "127.0.0.1", "0.0.0.0", "::1"];
+        if (blocked.includes(parsed.hostname)) {
+          return res.status(400).json({ message: "Invalid URL" });
+        }
+      } catch {
+        return res.status(400).json({ message: "Invalid URL format" });
+      }
 
       const syncRequest = await storage.createSyncRequest({
         userId: req.session.agentId,

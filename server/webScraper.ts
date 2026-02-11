@@ -35,7 +35,26 @@ IMPORTANT RULES:
 Return ONLY a valid JSON array. No markdown, no code fences, no explanation.
 Example: [{"title":"Beautiful Home","description":"A lovely 3 bedroom...","price":500000,"bedrooms":3,"bathrooms":2,"sqft":1800,"location":"Austin, TX","images":["https://example.com/img.jpg"]}]`;
 
+function isUrlSafe(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return false;
+    const hostname = parsed.hostname.toLowerCase();
+    const blocked = ["localhost", "127.0.0.1", "0.0.0.0", "::1", "169.254.169.254", "metadata.google.internal"];
+    if (blocked.includes(hostname)) return false;
+    if (hostname.endsWith(".local") || hostname.endsWith(".internal")) return false;
+    if (/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(hostname)) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function fetchPageContent(url: string): Promise<string | null> {
+  if (!isUrlSafe(url)) {
+    console.log("[WebScraper] URL blocked by SSRF protection");
+    return null;
+  }
   try {
     const response = await fetch(url, {
       headers: {
