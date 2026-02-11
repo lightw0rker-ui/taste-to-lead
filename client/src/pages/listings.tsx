@@ -623,7 +623,7 @@ export default function Listings() {
           </DialogHeader>
           <Button
             data-testid="button-modal-upgrade-listings"
-            onClick={() => window.open("https://esotarot.lemonsqueezy.com/checkout", "_blank")}
+            onClick={() => window.open("https://buy.stripe.com/14A14n1o0gvUgqe8Pu04800", "_blank")}
             className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-semibold mt-2"
           >
             <Crown className="w-4 h-4 mr-2" />

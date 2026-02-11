@@ -145,7 +145,7 @@ A full-stack multi-tenant real estate SaaS platform with two distinct experience
 - **Webhook**: POST /api/webhooks/lemon-squeezy with HMAC SHA256 signature verification
 - **Secret**: LEMONSQUEEZY_WEBHOOK_SECRET used for signature validation
 - **order_created event**: Extracts user_email, finds agent, upgrades subscriptionTier to "premium" + assigns premium org
-- **Frontend**: "Upgrade to Premium" button on dashboard opens https://esotarot.lemonsqueezy.com/checkout
+- **Frontend**: "Upgrade to Premium" button on dashboard opens https://buy.stripe.com/14A14n1o0gvUgqe8Pu04800 ($299)
 - **Premium badge**: Shows gold "Premium" or "Super Admin" badge when upgraded
 - **Agent schema**: subscriptionTier column added (default: "free")
 - **Live Webhook URL**: https://[app-url]/api/webhooks/lemon-squeezy
