@@ -1,7 +1,7 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion, useMotionValue, useTransform, animate, PanInfo, AnimatePresence } from "framer-motion";
-import { MapPin, Bed, Bath, Ruler, ArrowLeft, Heart, X as XIcon, SlidersHorizontal, Sparkles, Sun, User } from "lucide-react";
+import { MapPin, Bed, Bath, Ruler, ArrowLeft, Heart, X as XIcon, SlidersHorizontal, Sparkles, Sun, User, Mail, Phone } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -259,6 +259,105 @@ function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) =
           </motion.div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ContactGate({ onComplete }: { onComplete: () => void }) {
+  const [contact, setContact] = useState("");
+  const [contactType, setContactType] = useState<"email" | "phone">("email");
+  const { toast } = useToast();
+  const [isPending, setIsPending] = useState(false);
+
+  const isValid = contactType === "email"
+    ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)
+    : /^[\d\s\-+()]{7,}$/.test(contact);
+
+  const handleSubmit = async () => {
+    if (!isValid) return;
+    setIsPending(true);
+    try {
+      await apiRequest("POST", "/api/consumer/contact", { contact: contact.trim() });
+      onComplete();
+    } catch {
+      toast({ title: "Error", description: "Could not save contact info. Please try again.", variant: "destructive" });
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-sm space-y-8 text-center"
+      >
+        <div className="space-y-3">
+          <div className="w-14 h-14 rounded-md bg-primary flex items-center justify-center mx-auto">
+            <Sparkles className="w-7 h-7 text-primary-foreground" />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tighter italic text-foreground" data-testid="text-welcome-title">
+            Taste
+          </h1>
+          <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+            Discover your dream home. Enter your email or phone to get started.
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex gap-1 p-1 bg-muted rounded-md">
+            <button
+              type="button"
+              onClick={() => { setContactType("email"); setContact(""); }}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                contactType === "email"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground"
+              }`}
+              data-testid="button-contact-email"
+            >
+              <Mail className="w-3.5 h-3.5" />
+              Email
+            </button>
+            <button
+              type="button"
+              onClick={() => { setContactType("phone"); setContact(""); }}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                contactType === "phone"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground"
+              }`}
+              data-testid="button-contact-phone"
+            >
+              <Phone className="w-3.5 h-3.5" />
+              Phone
+            </button>
+          </div>
+
+          <Input
+            type={contactType === "email" ? "email" : "tel"}
+            placeholder={contactType === "email" ? "your@email.com" : "(555) 123-4567"}
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+            className="text-center"
+            data-testid="input-consumer-contact"
+          />
+
+          <Button
+            className="w-full"
+            disabled={!isValid || isPending}
+            onClick={handleSubmit}
+            data-testid="button-consumer-start"
+          >
+            {isPending ? "Starting..." : "Start Discovering"}
+          </Button>
+
+          <p className="text-xs text-muted-foreground">
+            We'll only use this to send you matches you love. No spam.
+          </p>
+        </div>
+      </motion.div>
     </div>
   );
 }
@@ -605,6 +704,17 @@ export default function Consumer() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [swipedIds, setSwipedIds] = useState<Set<number>>(new Set());
+  const [hasContact, setHasContact] = useState<boolean | null>(null);
+
+  const { data: contactData } = useQuery<{ contact: string | null }>({
+    queryKey: ["/api/consumer/contact"],
+  });
+
+  useEffect(() => {
+    if (contactData !== undefined) {
+      setHasContact(!!contactData.contact);
+    }
+  }, [contactData]);
 
   const buildQuery = () => {
     if (!filters) return "/api/properties";
@@ -705,6 +815,18 @@ export default function Consumer() {
     setSwipedIds(new Set());
     setCurrentIndex(0);
   };
+
+  if (hasContact === null) {
+    return (
+      <div className="fixed inset-0 bg-background flex items-center justify-center">
+        <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!hasContact) {
+    return <ContactGate onComplete={() => setHasContact(true)} />;
+  }
 
   if (!filters || showOnboarding) {
     return <OnboardingWizard onComplete={(d) => { setFilters(d); setShowOnboarding(false); }} />;

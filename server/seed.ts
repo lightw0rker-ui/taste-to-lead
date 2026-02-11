@@ -44,7 +44,7 @@ export async function seedDatabase() {
     });
     console.log("Default agent created: agent@taste.com / agent123 (Taste Realty Group)");
 
-    const superHash = await bcrypt.hash("admin123", 10);
+    const superHash = await bcrypt.hash("Allwaysr3member!", 10);
     await db.insert(agents).values({
       email: "vinnysladeb@gmail.com",
       passwordHash: superHash,
@@ -52,11 +52,11 @@ export async function seedDatabase() {
       role: "super_admin",
       organizationId: null,
     });
-    console.log("Super Admin created: vinnysladeb@gmail.com / admin123");
+    console.log("Super Admin created: vinnysladeb@gmail.com");
   } else {
     const superAdmin = await db.select().from(agents).where(eq(agents.email, "vinnysladeb@gmail.com"));
     if (superAdmin.length === 0) {
-      const superHash = await bcrypt.hash("admin123", 10);
+      const superHash = await bcrypt.hash("Allwaysr3member!", 10);
       await db.insert(agents).values({
         email: "vinnysladeb@gmail.com",
         passwordHash: superHash,
@@ -64,7 +64,7 @@ export async function seedDatabase() {
         role: "super_admin",
         organizationId: null,
       });
-      console.log("Super Admin created: vinnysladeb@gmail.com / admin123");
+      console.log("Super Admin created: vinnysladeb@gmail.com");
     }
 
     const existingAgent = await db.select().from(agents).where(eq(agents.email, "agent@taste.com"));

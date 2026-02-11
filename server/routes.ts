@@ -2,7 +2,9 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import crypto from "crypto";
 import { storage } from "./storage";
-import { insertPropertySchema, insertLeadSchema, swipeSchema, loginSchema, signupSchema } from "@shared/schema";
+import { db } from "./db";
+import { insertPropertySchema, insertLeadSchema, swipeSchema, loginSchema, signupSchema, sendVerificationSchema, verifyCodeSchema, verificationCodes } from "@shared/schema";
+import { eq, and, gt } from "drizzle-orm";
 import { sendEmail, buildMatchEmailHtml } from "./notificationService";
 import { classifyPropertyImage } from "./geminiTagger";
 import bcrypt from "bcryptjs";
@@ -82,9 +84,71 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/auth/send-verification", async (req, res) => {
+    try {
+      const parsed = sendVerificationSchema.parse(req.body);
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+      await db.insert(verificationCodes).values({
+        email: parsed.email,
+        code,
+        expiresAt,
+      });
+
+      await sendEmail(
+        parsed.email,
+        "Your Taste Verification Code",
+        `<div style="font-family: sans-serif; max-width: 400px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #b8860b;">Taste</h2>
+          <p>Your verification code is:</p>
+          <div style="font-size: 32px; font-weight: bold; letter-spacing: 8px; text-align: center; padding: 20px; background: #f5f5f5; border-radius: 8px; margin: 16px 0;">${code}</div>
+          <p style="color: #666; font-size: 13px;">This code expires in 10 minutes.</p>
+        </div>`
+      );
+
+      console.log(`[Auth] Verification code sent to ${parsed.email}: ${code}`);
+      res.json({ success: true, message: "Verification code sent" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/auth/verify-code", async (req, res) => {
+    try {
+      const parsed = verifyCodeSchema.parse(req.body);
+
+      const records = await db.select().from(verificationCodes).where(
+        and(
+          eq(verificationCodes.email, parsed.email),
+          eq(verificationCodes.code, parsed.code),
+          eq(verificationCodes.used, false),
+          gt(verificationCodes.expiresAt, new Date())
+        )
+      );
+
+      if (records.length === 0) {
+        return res.status(400).json({ message: "Invalid or expired verification code" });
+      }
+
+      await db.update(verificationCodes)
+        .set({ used: true })
+        .where(eq(verificationCodes.id, records[0].id));
+
+      req.session.emailVerified = parsed.email;
+      res.json({ success: true, verified: true });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   app.post("/api/auth/signup", async (req, res) => {
     try {
       const parsed = signupSchema.parse(req.body);
+
+      if (req.session.emailVerified !== parsed.email) {
+        return res.status(403).json({ message: "Please verify your email before signing up" });
+      }
 
       const existing = await storage.getAgentByEmail(parsed.email);
       if (existing) {
@@ -313,6 +377,19 @@ export async function registerRoutes(
   app.get("/api/taste-profile", (req, res) => {
     const profile = req.session.tasteProfile || {};
     res.json({ tasteProfile: profile });
+  });
+
+  app.post("/api/consumer/contact", (req, res) => {
+    const { contact } = req.body;
+    if (!contact || typeof contact !== "string" || contact.trim().length < 3) {
+      return res.status(400).json({ message: "Please provide a valid email or phone number" });
+    }
+    req.session.consumerContact = contact.trim();
+    res.json({ success: true });
+  });
+
+  app.get("/api/consumer/contact", (req, res) => {
+    res.json({ contact: req.session.consumerContact || null });
   });
 
   app.get("/api/user/stats", async (req, res) => {

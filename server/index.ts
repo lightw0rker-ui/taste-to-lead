@@ -23,6 +23,8 @@ declare module "express-session" {
     role?: string;
     isAdmin?: boolean;
     tasteProfile?: Record<string, number>;
+    emailVerified?: string;
+    consumerContact?: string;
   }
 }
 

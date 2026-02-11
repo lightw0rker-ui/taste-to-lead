@@ -129,6 +129,15 @@ export const insertSwipeSchema = createInsertSchema(swipes).omit({
 export type InsertSwipe = z.infer<typeof insertSwipeSchema>;
 export type Swipe = typeof swipes.$inferSelect;
 
+export const verificationCodes = pgTable("verification_codes", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  email: text("email").notNull(),
+  code: text("code").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
@@ -139,6 +148,15 @@ export const signupSchema = z.object({
   password: z.string().min(6),
   name: z.string().min(1),
   inviteCode: z.string().optional(),
+});
+
+export const sendVerificationSchema = z.object({
+  email: z.string().email(),
+});
+
+export const verifyCodeSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6),
 });
 
 export const swipeSchema = z.object({
