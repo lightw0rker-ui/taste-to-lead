@@ -1,5 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import path from "path";
 import crypto from "crypto";
 import { storage } from "./storage";
 import { db } from "./db";
@@ -37,6 +38,10 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+
+  app.get("/about", (_req, res) => {
+    res.sendFile(path.resolve("client/public/about.html"));
+  });
 
   app.post("/api/auth/login", async (req, res) => {
     try {
