@@ -44,8 +44,8 @@ async function getResendClient() {
 export async function sendEmail(to: string, subject: string, body: string): Promise<void> {
   try {
     const { client, fromEmail } = await getResendClient();
-    const isVerifiedDomain = fromEmail && !fromEmail.includes("@gmail.") && !fromEmail.includes("@yahoo.") && !fromEmail.includes("@hotmail.") && !fromEmail.includes("@outlook.");
-    const senderEmail = isVerifiedDomain ? fromEmail : "Taste <onboarding@resend.dev>";
+    const isFreemail = fromEmail && (fromEmail.includes("@gmail.") || fromEmail.includes("@yahoo.") || fromEmail.includes("@hotmail.") || fromEmail.includes("@outlook.") || fromEmail.includes("@aol."));
+    const senderEmail = (fromEmail && !isFreemail) ? fromEmail : "Taste <onboarding@resend.dev>";
     console.log(`[NotificationService] Sending from: ${senderEmail} to: ${to}`);
     const { data, error } = await client.emails.send({
       from: senderEmail,
