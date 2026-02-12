@@ -4,6 +4,7 @@ import { protos } from "@google-cloud/aiplatform";
 const PROJECT_ID = "gen-lang-client-0912710356";
 const LOCATION = "us-central1";
 const MODEL = "imagen-3.0-generate-001"; // Imagen 3
+// Fallback if above fails: "imagen-4.0-generate-001"
 
 export interface ImageGenerationResult {
   success: boolean;
