@@ -9,6 +9,7 @@ import { eq, and, gt } from "drizzle-orm";
 import { sendEmail, buildMatchEmailHtml } from "./notificationService";
 import { classifyPropertyImage } from "./geminiTagger";
 import { importFromUrl } from "./webScraper";
+import { generateStagedImage } from "./vertexImagegen";
 import bcrypt from "bcryptjs";
 
 const SUPER_ADMIN_EMAIL = "vinnysladeb@gmail.com";
@@ -846,6 +847,43 @@ QUALITY: Architectural Digest photography, 8k resolution, highly detailed textur
         return res.status(429).json({ message: "Gemini API rate limit exceeded. Your free tier quota has been used up. Please wait a minute and try again, or upgrade your Google AI billing at ai.google.dev." });
       }
       res.status(500).json({ message: "Failed to analyze room" });
+    }
+  });
+
+  app.post("/api/admin/staging-generate", requireAdmin, async (req, res) => {
+    try {
+      const { prompt, vibe } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ message: "Prompt is required" });
+      }
+
+      console.log(`[StagingGenerate] Starting image generation for ${vibe || "custom"} vibe`);
+
+      const result = await generateStagedImage(prompt);
+
+      if (!result.success) {
+        if (result.safetyBlocked) {
+          return res.status(400).json({ 
+            message: result.error,
+            safetyBlocked: true 
+          });
+        }
+        return res.status(500).json({ message: result.error });
+      }
+
+      // Return the base64 image data
+      const imageDataUrl = `data:image/png;base64,${result.imageData}`;
+      
+      console.log(`[StagingGenerate] Image generated successfully (${result.imageData?.length || 0} bytes)`);
+      
+      res.json({ 
+        success: true,
+        imageUrl: imageDataUrl,
+        vibe: vibe || "custom"
+      });
+    } catch (error: any) {
+      console.error("[StagingGenerate] Error:", error.message);
+      res.status(500).json({ message: "Failed to generate staged image" });
     }
   });
 
