@@ -96,13 +96,7 @@ export async function registerRoutes(
       const code = String(Math.floor(100000 + Math.random() * 900000));
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-      await db.insert(verificationCodes).values({
-        email: parsed.email,
-        code,
-        expiresAt,
-      });
-
-      await sendEmail(
+      const emailResult = await sendEmail(
         parsed.email,
         "Your Taste Verification Code",
         `<div style="font-family: sans-serif; max-width: 400px; margin: 0 auto; padding: 20px;">
@@ -113,9 +107,24 @@ export async function registerRoutes(
         </div>`
       );
 
-      console.log(`[Auth] Verification code sent to ${parsed.email}: ${code}`);
+      if (!emailResult.success) {
+        console.error(`[Auth] Failed to send verification email to ${parsed.email}: ${emailResult.error}`);
+        if (emailResult.error === "domain_not_verified") {
+          return res.status(503).json({ message: "Email service is not fully configured. Please contact support or try again later." });
+        }
+        return res.status(503).json({ message: "Could not send verification email. Please try again later." });
+      }
+
+      await db.insert(verificationCodes).values({
+        email: parsed.email,
+        code,
+        expiresAt,
+      });
+
+      console.log(`[Auth] Verification code sent to ${parsed.email}`);
       res.json({ success: true, message: "Verification code sent" });
     } catch (error: any) {
+      console.error("[Auth] send-verification error:", error);
       res.status(400).json({ message: error.message });
     }
   });

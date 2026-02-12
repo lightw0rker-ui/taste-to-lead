@@ -1,6 +1,5 @@
 import { Resend } from "resend";
 
-// Resend integration via Replit connector
 let connectionSettings: any;
 
 async function getCredentials() {
@@ -41,7 +40,7 @@ async function getResendClient() {
   return { client: new Resend(apiKey), fromEmail };
 }
 
-export async function sendEmail(to: string, subject: string, body: string): Promise<void> {
+export async function sendEmail(to: string, subject: string, body: string): Promise<{ success: boolean; error?: string }> {
   try {
     const { client, fromEmail } = await getResendClient();
     const isFreemail = fromEmail && (fromEmail.includes("@gmail.") || fromEmail.includes("@yahoo.") || fromEmail.includes("@hotmail.") || fromEmail.includes("@outlook.") || fromEmail.includes("@aol."));
@@ -56,11 +55,17 @@ export async function sendEmail(to: string, subject: string, body: string): Prom
 
     if (error) {
       console.error("[NotificationService] Resend error:", error);
-      return;
+      const msg = (error as any).message || "Email delivery failed";
+      if (msg.includes("only send testing emails")) {
+        return { success: false, error: "domain_not_verified" };
+      }
+      return { success: false, error: msg };
     }
     console.log(`[NotificationService] Email sent via Resend: ${data?.id}`);
-  } catch (error) {
+    return { success: true };
+  } catch (error: any) {
     console.error("[NotificationService] Email send failed:", error);
+    return { success: false, error: error.message || "Email service unavailable" };
   }
 }
 

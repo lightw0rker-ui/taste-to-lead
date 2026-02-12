@@ -49,7 +49,12 @@ export default function Login() {
       toast({ title: "Code Sent", description: `A 6-digit verification code has been sent to ${email}.` });
     },
     onError: (err: Error) => {
-      toast({ title: "Failed to send code", description: err.message, variant: "destructive" });
+      const msg = err.message.includes("503")
+        ? "Email service is temporarily unavailable. Please try again later."
+        : err.message.includes("not fully configured")
+          ? "Email service is not fully configured. Please contact support."
+          : err.message;
+      toast({ title: "Failed to send code", description: msg, variant: "destructive" });
     },
   });
 
