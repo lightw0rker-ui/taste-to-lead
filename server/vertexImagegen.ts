@@ -3,7 +3,7 @@ import { protos } from "@google-cloud/aiplatform";
 
 const PROJECT_ID = "gen-lang-client-0912710356";
 const LOCATION = "us-central1";
-const MODEL = "image-generation@006"; // Imagen 3
+const MODEL = "imagegeneration@006"; // Imagen 3 (correct format without hyphen)
 
 export interface ImageGenerationResult {
   success: boolean;
