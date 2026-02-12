@@ -757,6 +757,13 @@ ${archetypes.map(a => `- ${a.name}: ${a.keywords}. Psychology: ${a.psychology}`)
       res.json({ hooks: fallbackHooks });
     } catch (error: any) {
       console.error("[StagingHooks] Error:", error.message);
+      if (error.message?.includes("429") || error.message?.includes("quota")) {
+        const fallbackHooks = archetypes.map(a => ({
+          archetype: a.name,
+          hook: `Experience this space reimagined through the ${a.name} lens — where ${a.psychology.toLowerCase()} meets inspired design.`,
+        }));
+        return res.json({ hooks: fallbackHooks });
+      }
       res.status(500).json({ message: "Failed to generate selling hooks" });
     }
   });
@@ -835,6 +842,9 @@ QUALITY: Architectural Digest photography, 8k resolution, highly detailed textur
       res.json({ prompt, vibe: targetVibe });
     } catch (error: any) {
       console.error("[StagingAnalyze] Error:", error.message);
+      if (error.message?.includes("429") || error.message?.includes("quota")) {
+        return res.status(429).json({ message: "Gemini API rate limit exceeded. Your free tier quota has been used up. Please wait a minute and try again, or upgrade your Google AI billing at ai.google.dev." });
+      }
       res.status(500).json({ message: "Failed to analyze room" });
     }
   });
