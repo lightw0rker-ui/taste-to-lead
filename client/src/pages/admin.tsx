@@ -1,6 +1,9 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Users, Building2, Trash2, Zap, Crown, Shield, Upload, Wand2, RefreshCw, ImageIcon, Check, Download, Sparkles } from "lucide-react";
+import { Users, Building2, Trash2, Zap, Crown, Shield, Upload, Wand2, RefreshCw, ImageIcon, Check, Download, Sparkles, ChevronDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -237,6 +240,8 @@ function StagingTab() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCards, setGeneratedCards] = useState<StagingCard[]>([]);
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null);
+  const [selectedVibes, setSelectedVibes] = useState<string[]>(VIBE_ARCHETYPES.map(v => v.name));
+  const [vibeSelectOpen, setVibeSelectOpen] = useState(false);
 
   const selectedCount = generatedCards.filter(c => c.selected).length;
 
@@ -251,9 +256,29 @@ function StagingTab() {
     reader.readAsDataURL(file);
   };
 
+  const toggleVibe = (vibeName: string) => {
+    setSelectedVibes(prev => 
+      prev.includes(vibeName) 
+        ? prev.filter(v => v !== vibeName)
+        : [...prev, vibeName]
+    );
+  };
+
+  const toggleAllVibes = () => {
+    if (selectedVibes.length === VIBE_ARCHETYPES.length) {
+      setSelectedVibes([]);
+    } else {
+      setSelectedVibes(VIBE_ARCHETYPES.map(v => v.name));
+    }
+  };
+
   const handleGenerate = async () => {
     if (!uploadedImage) {
       toast({ title: "Upload Required", description: "Please upload an empty room photo first.", variant: "destructive" });
+      return;
+    }
+    if (selectedVibes.length === 0) {
+      toast({ title: "Select Vibes", description: "Please select at least one archetype to generate.", variant: "destructive" });
       return;
     }
     setIsGenerating(true);
@@ -268,27 +293,31 @@ function StagingTab() {
         });
       }
 
-      const cards: StagingCard[] = VIBE_ARCHETYPES.map((v) => ({
-        name: v.name,
-        color: v.color,
-        desc: v.desc,
-        imageUrl: uploadedImage!,
-        hook: hooksMap[v.name] || `Experience this space reimagined through the ${v.name} lens.`,
-        selected: false,
-      }));
+      const cards: StagingCard[] = VIBE_ARCHETYPES
+        .filter(v => selectedVibes.includes(v.name))
+        .map((v) => ({
+          name: v.name,
+          color: v.color,
+          desc: v.desc,
+          imageUrl: uploadedImage!,
+          hook: hooksMap[v.name] || `Experience this space reimagined through the ${v.name} lens.`,
+          selected: false,
+        }));
       setGeneratedCards(cards);
-      toast({ title: "Full Spectrum Generated", description: "8 archetype variations with selling hooks ready. Select your favorites." });
+      toast({ title: `${cards.length} Realities Generated`, description: "Selected archetype variations with selling hooks ready." });
     } catch {
-      const cards: StagingCard[] = VIBE_ARCHETYPES.map((v) => ({
-        name: v.name,
-        color: v.color,
-        desc: v.desc,
-        imageUrl: uploadedImage!,
-        hook: `Experience this space reimagined through the ${v.name} lens.`,
-        selected: false,
-      }));
+      const cards: StagingCard[] = VIBE_ARCHETYPES
+        .filter(v => selectedVibes.includes(v.name))
+        .map((v) => ({
+          name: v.name,
+          color: v.color,
+          desc: v.desc,
+          imageUrl: uploadedImage!,
+          hook: `Experience this space reimagined through the ${v.name} lens.`,
+          selected: false,
+        }));
       setGeneratedCards(cards);
-      toast({ title: "8 Realities Generated", description: "Selling hooks unavailable, using defaults." });
+      toast({ title: `${cards.length} Realities Generated`, description: "Selling hooks unavailable, using defaults." });
     } finally {
       setIsGenerating(false);
     }
@@ -369,7 +398,7 @@ function StagingTab() {
           </div>
           <div>
             <h3 className="font-semibold">Full Spectrum Virtual Staging</h3>
-            <p className="text-xs text-muted-foreground">Upload a room photo to generate all 8 archetype variations with AI selling hooks</p>
+            <p className="text-xs text-muted-foreground">Upload a room photo and select which archetype variations you want to generate with AI</p>
           </div>
         </div>
 
@@ -391,14 +420,69 @@ function StagingTab() {
             <Upload className="w-4 h-4" />
             {uploadedImage ? "Change Photo" : "Choose Photo"}
           </Button>
+          
+          <Popover open={vibeSelectOpen} onOpenChange={setVibeSelectOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="gap-2 min-w-[180px] justify-between"
+                data-testid="button-select-vibes"
+              >
+                <span className="text-sm">
+                  {selectedVibes.length === VIBE_ARCHETYPES.length 
+                    ? "All Vibes (8)" 
+                    : selectedVibes.length === 0
+                    ? "Select Vibes"
+                    : `${selectedVibes.length} Vibe${selectedVibes.length > 1 ? 's' : ''}`}
+                </span>
+                <ChevronDown className="w-4 h-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-3" align="start">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b">
+                  <h4 className="text-sm font-semibold">Select Archetypes</h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleAllVibes}
+                    className="h-auto py-1 px-2 text-xs"
+                  >
+                    {selectedVibes.length === VIBE_ARCHETYPES.length ? "Clear All" : "Select All"}
+                  </Button>
+                </div>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {VIBE_ARCHETYPES.map((vibe) => (
+                    <div key={vibe.name} className="flex items-start space-x-2">
+                      <Checkbox
+                        id={`vibe-${vibe.name}`}
+                        checked={selectedVibes.includes(vibe.name)}
+                        onCheckedChange={() => toggleVibe(vibe.name)}
+                      />
+                      <Label
+                        htmlFor={`vibe-${vibe.name}`}
+                        className="text-sm leading-tight cursor-pointer"
+                      >
+                        <div className="font-medium">{vibe.name}</div>
+                        <div className="text-xs text-muted-foreground">{vibe.desc}</div>
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
           <Button
             className="gap-2"
             onClick={handleGenerate}
-            disabled={!uploadedImage || isGenerating}
+            disabled={!uploadedImage || isGenerating || selectedVibes.length === 0}
             data-testid="button-generate-realities"
           >
             <Wand2 className="w-4 h-4" />
-            {isGenerating ? "Generating All 8..." : "Generate 8 Realities"}
+            {isGenerating 
+              ? `Generating ${selectedVibes.length}...` 
+              : `Generate ${selectedVibes.length} Realit${selectedVibes.length === 1 ? 'y' : 'ies'}`}
           </Button>
         </div>
 
