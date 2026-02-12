@@ -761,6 +761,84 @@ ${archetypes.map(a => `- ${a.name}: ${a.keywords}. Psychology: ${a.psychology}`)
     }
   });
 
+  app.post("/api/admin/staging-analyze", requireAdmin, async (req, res) => {
+    try {
+      const { imageData, targetVibe } = req.body;
+      if (!imageData || !targetVibe) {
+        return res.status(400).json({ message: "Image data and target vibe are required" });
+      }
+
+      const STYLES: Record<string, string> = {
+        "Monarch": "Modern Luxury Opulence. Palette: Black, Gold, Emerald Green. Furniture: Tufted velvet sofas, brass coffee tables, crystal lighting. Mood: Expensive, Moody, High-Contrast.",
+        "Industrialist": "Raw Urban Loft. Palette: Charcoal, Rust, Concrete Gray. Furniture: Distressed cognac leather chesterfields, black steel shelving, exposed brick. Mood: Masculine, Gritty, Authentic.",
+        "Purist": "Japanese-Scandinavian Minimalist. Palette: Warm White, Beige, Light Oak. Furniture: Low-profile linen sofas, noguchi tables, zero clutter. Mood: Zen, Airy, Soft.",
+        "Naturalist": "Biophilic Sanctuary. Palette: Sage Green, Terracotta, Raw Wood. Furniture: Rattan lounge chairs, living plant walls, jute rugs, organic shapes. Mood: Fresh, Oxygenated, Peaceful.",
+        "Futurist": "Cyberpunk High-Tech. Palette: Neon Blue, Cool White, Chrome. Furniture: Floating LED beds, acrylic chairs, glossy surfaces, geometric shapes. Mood: Clinical, Sharp, Electric.",
+        "Curator": "Eclectic Maximalist. Palette: Mustard, Teal, Burnt Orange. Furniture: Sculptural velvet armchairs, gallery walls of mixed art, patterned persian rugs. Mood: Artsy, Bold, Collected.",
+        "Nomad": "Global Boho. Palette: Ochre, Sand, Deep Red. Furniture: Low floor seating, moroccan poufs, layered textiles, macrame, reclaimed wood. Mood: Warm, Traveled, Earthy.",
+        "Classicist": "Traditional Heritage. Palette: Navy Blue, Cream, Mahogany. Furniture: Wingback chairs, heavy drapes, antique brass lamps, persian rugs. Mood: Timeless, Wealthy, Established.",
+      };
+
+      const vibeDesc = STYLES[targetVibe];
+      if (!vibeDesc) {
+        return res.status(400).json({ message: `Unknown vibe: ${targetVibe}` });
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({ message: "Gemini API key not configured" });
+      }
+
+      const { GoogleGenerativeAI } = await import("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+      const architectPrompt = `ACT AS: A Senior Interior Architect and 3D Renderer.
+
+TASK: Analyze the provided image of an empty room and generate a strict execution prompt for an image generation model.
+
+STEP 1: ANALYZE THE PHYSICS
+- Identify the FLOORING material (e.g., "White Oak Herringbone", "Polished Concrete").
+- Identify the LIGHT SOURCE (e.g., "Soft diffused sunlight from large bay window on left").
+- Identify the PERSPECTIVE (e.g., "Eye-level wide shot", "Two-point perspective").
+- Identify the NEGATIVE SPACE (Where is the floor empty? That is where furniture goes).
+
+STEP 2: APPLY THE VIBE
+- Apply the following design language: "${vibeDesc}"
+- Select furniture pieces that match this vibe EXACTLY.
+
+STEP 3: GENERATE THE OUTPUT
+Write a single, continuous prompt string using this exact template. Do not add intro text.
+
+TEMPLATE:
+"A photorealistic [Perspective] of an empty [Room Type] now staged with ${targetVibe} furniture. The room features [Flooring] and [Architectural Details].
+CENTRAL FOCUS: A [Key Furniture Piece] positioned in the [Negative Space], facing the [Focal Point].
+DETAILS: [List 3 specific decor items from Vibe].
+LIGHTING: [Light Source] creating [Mood] shadows.
+QUALITY: Architectural Digest photography, 8k resolution, highly detailed textures, ray-tracing, depth of field."`;
+
+      const base64Match = imageData.match(/^data:image\/\w+;base64,(.+)$/);
+      if (!base64Match) {
+        return res.status(400).json({ message: "Invalid image data format" });
+      }
+
+      const mimeMatch = imageData.match(/^data:(image\/\w+);base64,/);
+      const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+
+      const result = await model.generateContent([
+        { inlineData: { mimeType, data: base64Match[1] } },
+        architectPrompt,
+      ]);
+
+      const prompt = result.response.text().trim();
+      console.log(`[StagingAnalyze] Generated ${targetVibe} prompt (${prompt.length} chars)`);
+      res.json({ prompt, vibe: targetVibe });
+    } catch (error: any) {
+      console.error("[StagingAnalyze] Error:", error.message);
+      res.status(500).json({ message: "Failed to analyze room" });
+    }
+  });
+
   app.post("/api/webhooks/lemon-squeezy", async (req, res) => {
     try {
       const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
