@@ -43,12 +43,12 @@ export async function generateStagedImage(
       prompt: prompt,
     };
 
-    const instanceValue = { structValue: { fields: {} } };
+    const instanceValue: any = { structValue: { fields: {} } };
     Object.entries(instance).forEach(([key, value]) => {
       instanceValue.structValue.fields[key] = { stringValue: value };
     });
 
-    const parametersValue = { structValue: { fields: {} } };
+    const parametersValue: any = { structValue: { fields: {} } };
     Object.entries(parameters).forEach(([key, value]) => {
       if (typeof value === "string") {
         parametersValue.structValue.fields[key] = { stringValue: value };
