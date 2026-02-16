@@ -125,8 +125,10 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
-  const preferredPort = Number(process.env.PORT) || 3000;
-  const maxPortAttempts = 20;
+  const envPort = Number(process.env.PORT);
+  const hasEnvPort = Number.isFinite(envPort) && envPort > 0;
+  const preferredPort = hasEnvPort ? envPort : 3000;
+  const maxPortAttempts = hasEnvPort ? 1 : 20;
 
   const tryListen = (port: number) =>
     new Promise<void>((resolve, reject) => {
@@ -142,7 +144,7 @@ app.use((req, res, next) => {
 
       httpServer.once("error", onError);
       httpServer.once("listening", onListening);
-      httpServer.listen(process.env.PORT || 5000, '0.0.0.0');
+      httpServer.listen(port, "0.0.0.0");
     });
 
   let started = false;
@@ -164,7 +166,9 @@ app.use((req, res, next) => {
 
   if (!started) {
     throw new Error(
-      `Unable to start server: ports ${preferredPort} to ${preferredPort + maxPortAttempts - 1} are in use`,
+      hasEnvPort
+        ? `Unable to start server on required PORT=${preferredPort}`
+        : `Unable to start server: ports ${preferredPort} to ${preferredPort + maxPortAttempts - 1} are in use`,
     );
   }
 })();
