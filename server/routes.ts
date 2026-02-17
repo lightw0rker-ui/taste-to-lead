@@ -13,6 +13,7 @@ import { VIBES, VIBE_DEFINITIONS, computeMatchScore, computeTasteScore, computeB
 import { parseCsvMultipart, runPortfolioImportJob, csvRowsToListings, URL_IMPORT_FAIL_MESSAGE } from "./portfolioImport";
 import { runUrlImportPipeline, type ListingDraft, type UrlImportMode, type UrlImportReasonCode } from "./modules/import/urlImportStrategies";
 import { registerStagingRoutes } from "./modules/staging/stagingRoutes";
+import { getDbReadinessState, isDbReady } from "./dbReadiness";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
@@ -199,6 +200,18 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   registerStagingRoutes(app);
+
+  app.use("/api", (req, res, next) => {
+    if (isDbReady()) {
+      return next();
+    }
+
+    const { error } = getDbReadinessState();
+    return res.status(503).json({
+      message: "Service unavailable: database is not ready",
+      details: error,
+    });
+  });
 
   app.get("/api/import/status", requireAgent, async (req, res) => {
     try {
@@ -1148,7 +1161,7 @@ export async function registerRoutes(
               status: "failed",
               stage: "failed",
               progress: runtime?.progress ?? 90,
-              reasonCode: "PARSE_FAILED",
+              reasonCode: "parse_failed",
               triedStrategies: pipeline.triedStrategies,
               debug: pipeline.debug,
               error: "All listings failed to import.",
@@ -1161,7 +1174,7 @@ export async function registerRoutes(
             status: "failed",
             stage: "failed",
             progress: runtime?.progress ?? 0,
-            reasonCode: "FETCH_FAILED",
+            reasonCode: "fetch_failed",
             error: message,
           });
           await storage.updateImportJob(jobId, {

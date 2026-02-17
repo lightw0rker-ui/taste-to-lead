@@ -6,6 +6,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import type { AddressInfo } from "net";
+import { checkDbReadiness, startDbReadinessMonitor } from "./dbReadiness";
 
 const app = express();
 const httpServer = createServer(app);
@@ -104,9 +105,6 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const { seedDatabase } = await import("./seed");
-  await seedDatabase();
-
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
@@ -175,4 +173,25 @@ app.use((req, res, next) => {
         : `Unable to start server: ports ${preferredPort} to ${preferredPort + maxPortAttempts - 1} are in use`,
     );
   }
+
+  startDbReadinessMonitor();
+
+  const { seedDatabase } = await import("./seed");
+  const trySeed = async () => {
+    const ready = await checkDbReadiness();
+    if (!ready) {
+      return;
+    }
+
+    try {
+      await seedDatabase();
+      console.log("[DB] Seed completed.");
+      clearInterval(seedInterval);
+    } catch (error: any) {
+      console.error(`[DB] Seed failed: ${error?.message ?? String(error)}`);
+    }
+  };
+
+  const seedInterval = setInterval(trySeed, 30000);
+  await trySeed();
 })();
