@@ -54,20 +54,55 @@ psql "$DATABASE_URL" -c "select count(*) from organizations;"
 
 ## Deployment pipeline
 
-`cloudbuild.yaml` no longer runs migrations on every deploy.
+`cloudbuild.yaml` builds and pushes two images per commit:
 
-Recommended release order:
+- Service image: `${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE_NAME}:$COMMIT_SHA`
+- Migration image: `${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE_NAME}:migrate-$COMMIT_SHA`
 
-1. Build/deploy web service with Cloud Build.
-2. Run migrations as a one-time/manual step (or Cloud Run Job) against the same `DATABASE_URL`:
+The service deploy uses the service image only. Migrations run separately through a Cloud Run Job that uses the migration image.
+
+## Cloud Run Job setup for migrations (exact commands)
+
+Set your variables:
 
 ```bash
-export DATABASE_URL="<your neon connection string>"
-npm ci
-npm run db:migrate
+export PROJECT_ID="<your-gcp-project>"
+export REGION="us-central1"
+export REPOSITORY="cloud-run-source-deploy"
+export SERVICE_NAME="taste-to-lead"
+export COMMIT_SHA="<commit-sha-to-migrate>"
+export MIGRATE_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${SERVICE_NAME}:migrate-${COMMIT_SHA}"
 ```
 
-This keeps deploys safe and avoids schema changes unexpectedly blocking image rollout.
+Create (or update) the Cloud Run Job:
+
+```bash
+gcloud run jobs deploy taste-to-lead-migrate \
+  --project="$PROJECT_ID" \
+  --region="$REGION" \
+  --image="$MIGRATE_IMAGE" \
+  --set-secrets=DATABASE_URL=DATABASE_URL:latest \
+  --max-retries=1 \
+  --task-timeout=10m
+```
+
+Execute the migration job:
+
+```bash
+gcloud run jobs execute taste-to-lead-migrate \
+  --project="$PROJECT_ID" \
+  --region="$REGION" \
+  --wait
+```
+
+Describe the latest run:
+
+```bash
+gcloud run jobs executions list \
+  --project="$PROJECT_ID" \
+  --region="$REGION" \
+  --job=taste-to-lead-migrate
+```
 
 ## Local verification commands
 

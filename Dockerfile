@@ -8,6 +8,11 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+
+FROM build AS migrate
+CMD ["npm", "run", "db:migrate"]
+
+FROM build AS service-build
 RUN npm run build
 RUN npm prune --omit=dev
 
@@ -16,9 +21,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8080
 
-COPY --from=build /app/package*.json ./
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
+COPY --from=service-build /app/package*.json ./
+COPY --from=service-build /app/node_modules ./node_modules
+COPY --from=service-build /app/dist ./dist
 
 EXPOSE 8080
 CMD ["npm", "run", "start"]
