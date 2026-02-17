@@ -10,6 +10,10 @@ import type { AddressInfo } from "net";
 const app = express();
 const httpServer = createServer(app);
 
+app.get("/healthz", (_req, res) => {
+  res.status(200).json({ ok: true });
+});
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
@@ -127,7 +131,7 @@ app.use((req, res, next) => {
 
   const envPort = Number(process.env.PORT);
   const hasEnvPort = Number.isFinite(envPort) && envPort > 0;
-  const preferredPort = hasEnvPort ? envPort : 3000;
+  const preferredPort = hasEnvPort ? envPort : 8080;
   const maxPortAttempts = hasEnvPort ? 1 : 20;
 
   const tryListen = (port: number) =>
