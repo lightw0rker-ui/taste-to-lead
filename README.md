@@ -71,18 +71,11 @@ This keeps deploy lightweight and avoids Cloud Run build failures due to browser
 ## How to test locally with Docker
 
 ```bash
-docker build -t taste-to-lead:local .
+docker build -t app .
 
-docker run --rm -p 8080:8080 \
-  -e NODE_ENV=production \
-  -e PORT=8080 \
-  -e DATABASE_URL="postgres://USER:PASSWORD@HOST:5432/DB" \
-  -e SESSION_SECRET="replace-me" \
-  -e GOOGLE_AI_API_KEY="replace-me" \
-  -e RESEND_API_KEY="replace-me" \
-  taste-to-lead:local
+docker run --rm -e PORT=8080 -p 8080:8080 app
 
-curl -i http://localhost:8080/healthz
+curl http://localhost:8080/healthz
 ```
 
 ## Deployment checklist
