@@ -9,7 +9,7 @@ substitutions:
 
 steps:
   - name: gcr.io/cloud-builders/docker
-    id: build-image
+    id: build-service-image
     args:
       - build
       - -t
@@ -17,10 +17,35 @@ steps:
       - .
 
   - name: gcr.io/cloud-builders/docker
-    id: push-image
+    id: build-migrate-image
+    args:
+      - build
+      - --target
+      - migrate
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE_NAME}:migrate-$COMMIT_SHA
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    id: push-service-image
     args:
       - push
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE_NAME}:$COMMIT_SHA
+
+  - name: gcr.io/cloud-builders/docker
+    id: push-migrate-image
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE_NAME}:migrate-$COMMIT_SHA
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: log-image-urls
+    entrypoint: /bin/bash
+    args:
+      - -c
+      - |
+        echo "Service image: ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE_NAME}:$COMMIT_SHA"
+        echo "Migrate image: ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE_NAME}:migrate-$COMMIT_SHA"
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     id: deploy-cloud-run
@@ -41,4 +66,4 @@ steps:
       - --max-instances=20
 
 # Note: migrations are intentionally NOT run during every deploy.
-# Run `npm run db:migrate` as a separate manual release step or Cloud Run Job.
+# Run migrations via Cloud Run Job using the migrate image.
