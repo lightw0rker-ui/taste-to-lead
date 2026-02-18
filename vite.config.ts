@@ -23,7 +23,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       "/api": {
-        target: "http://localhost:3000",
+        target: "https://taste-to-lead-863796414902.us-south1.run.app",
         changeOrigin: true,
       },
     },
